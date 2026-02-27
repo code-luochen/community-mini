@@ -1,12 +1,14 @@
-import { defineConfig } from "vite";
 import uni from "@dcloudio/vite-plugin-uni";
+import Components from "@uni-helper/vite-plugin-uni-components";
+import { uViewProResolver } from "@uni-helper/vite-plugin-uni-components/resolvers";
+import { defineConfig } from "vite";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    Components({
-      resolvers: [uViewProResolver()],
-    }),
-    uni(),
-  ],
+	plugins: [
+		Components({
+			resolvers: [uViewProResolver()],
+		}),
+		uni(),
+	],
 });
