@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import uni from "@dcloudio/vite-plugin-uni";
 import Components from "@uni-helper/vite-plugin-uni-components";
 import { uViewProResolver } from "@uni-helper/vite-plugin-uni-components/resolvers";
@@ -11,4 +12,9 @@ export default defineConfig({
 		}),
 		uni(),
 	],
+	resolve: {
+		alias: {
+			"@": resolve(__dirname, "src"),
+		},
+	},
 });

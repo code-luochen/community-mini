@@ -1,0 +1,15 @@
+// 强制背景色 #FFFFFF
+$bg-color: #FFFFFF;
+
+// 正文 #333333（确保对比度 ≥ 4.5:1）
+$text-color: #333333;
+$text-color-light: #666666;
+
+// 字体大小，配合 store 使用，这里提供默认值或特定场景值
+$font-size-base: 20px;
+$font-size-large: 24px;
+$font-size-small: 18px;
+
+// 品牌色，考虑适老化提供高对比度颜色
+$primary-color: #0052D9; // 一种高对比度蓝色
+$danger-color: #D54941;

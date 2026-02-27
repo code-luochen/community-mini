@@ -3,16 +3,17 @@
     {
       "path": "pages/home/index",
       "style": {
-        "navigationBarTitleText": "uni-app"
+        "navigationBarTitleText": "首页"
       }
     },
     {
       "path": "pages/category/index",
       "style": {
-        "navigationBarTitleText": "category"
+        "navigationBarTitleText": "分类"
       }
     }
   ],
+  "subPackages": [],
   "tabBar": {
     "list": [
       {
@@ -25,11 +26,10 @@
       }
     ]
   },
-
   "globalStyle": {
     "navigationBarTextStyle": "black",
-    "navigationBarTitleText": "uni-app",
-    "navigationBarBackgroundColor": "#F8F8F8",
-    "backgroundColor": "#F8F8F8"
+    "navigationBarTitleText": "小区老年人服务",
+    "navigationBarBackgroundColor": "#FFFFFF",
+    "backgroundColor": "#FFFFFF"
   }
 }

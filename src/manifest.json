@@ -46,7 +46,16 @@
     "setting": {
       "urlCheck": false
     },
-    "usingComponents": true
+    "usingComponents": true,
+    "requiredPrivateInfos": [
+      "getLocation",
+      "chooseLocation"
+    ],
+    "permission": {
+      "scope.userLocation": {
+        "desc": "您的位置信息将用于呼叫紧急求助或显示附近服务(高德地图)"
+      }
+    }
   },
   "mp-alipay": {
     "usingComponents": true
