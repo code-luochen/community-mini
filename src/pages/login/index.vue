@@ -1,21 +1,31 @@
 <template>
   <view class="login-container" :style="{ '--base-font-size': settingsStore.fontSize + 'px' }">
-    <!-- 1. 头部 Logo 设计 -->
+    <!-- 1. 顶部背景装饰 (Cyan Decor) -->
+    <view class="top-decor"></view>
+
+    <!-- 2. 头部 Logo 设计 -->
     <view class="login-header">
-      <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
-      <text class="title" :style="{ fontSize: `${settingsStore.fontSize + 4}px` }">小区老年人服务</text>
-      <text class="subtitle" :style="{ fontSize: `${settingsStore.fontSize - 2}px` }">适老化社区，智慧养老</text>
+      <view class="logo-wrap">
+         <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
+      </view>
+      <text class="title" :style="{ fontSize: `${settingsStore.fontSize + 6}px` }">小区智慧养老</text>
+      <text class="subtitle" :style="{ fontSize: `${settingsStore.fontSize}px` }">适老化社区，时刻为您守护</text>
     </view>
 
-    <!-- 2. 登录表单 -->
-    <view class="login-form">
+    <!-- 3. 登录表单 -->
+    <view class="login-form-card">
+      <view class="form-title" :style="{ fontSize: `${settingsStore.fontSize + 2}px` }">账号登录</view>
+      
       <view class="input-item">
-        <text class="label" :style="{ fontSize: `${settingsStore.fontSize}px` }">账号</text>
+        <view class="label-row">
+          <u-icon name="account" size="32" color="#0891B2"></u-icon>
+          <text class="label" :style="{ fontSize: `${settingsStore.fontSize}px` }">管理账号</text>
+        </view>
         <view class="input-wrapper">
           <input 
             class="input" 
             v-model="loginForm.username" 
-            placeholder="请输入账号 (需包含 elderly_)" 
+            placeholder="请输入您的账号" 
             placeholder-class="placeholder"
             :style="{ fontSize: `${settingsStore.fontSize}px` }"
           />
@@ -23,13 +33,16 @@
       </view>
 
       <view class="input-item">
-        <text class="label" :style="{ fontSize: `${settingsStore.fontSize}px` }">密码</text>
+        <view class="label-row">
+          <u-icon name="lock" size="32" color="#0891B2"></u-icon>
+          <text class="label" :style="{ fontSize: `${settingsStore.fontSize}px` }">登录密码</text>
+        </view>
         <view class="input-wrapper">
           <input 
             class="input" 
             v-model="loginForm.password" 
             type="password" 
-            placeholder="请输入密码" 
+            placeholder="请输入六位以上密码" 
             placeholder-class="placeholder"
             :style="{ fontSize: `${settingsStore.fontSize}px` }"
           />
@@ -39,187 +52,205 @@
       <!-- 登录按钮 -->
       <view class="button-area">
         <ElderlyButton 
-          :voice-text="`点击登录，当前账号为${loginForm.username || '空'}`" 
+          :voice-text="`点击登录`" 
           @click="handleLogin"
         >
-          登 录
+          安全登录
         </ElderlyButton>
+      </view>
+      
+      <view class="tips">
+        <text class="tip-text" :style="{ fontSize: `${settingsStore.fontSize - 4}px` }">
+          温馨提示：账号建议包含 elderly_ 前缀以快速识别角色
+        </text>
       </view>
     </view>
 
-    <!-- 3. 技术支持与提示 -->
-    <view class="footer-tips">
-      <text class="tip-text" :style="{ fontSize: `${settingsStore.fontSize - 4}px` }">
-        如无法登录，请联系小区管理员协助重置
-      </text>
+    <!-- 4. 底部版权 -->
+    <view class="footer">
+      <text class="copyright">社区养老服务中心 · 技术支持</text>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { reactive, onMounted } from 'vue';
-import { onLoad, onShow } from '@dcloudio/uni-app';
+import { reactive } from 'vue';
+import { onLoad } from '@dcloudio/uni-app';
 import { useSettingsStore } from '@/stores/settings';
 import { useUserStore } from '@/stores/user';
 import { login } from '@/api/auth';
 import ElderlyButton from '@/components/ElderlyButton.vue';
 
-/**
- * @description 小区老年人登录页面
- * @author Uniapp Frontend Expert
- */
-
 const settingsStore = useSettingsStore();
 const userStore = useUserStore();
 
-// 1. 表单状态定义
 const loginForm = reactive({
   username: '',
   password: ''
 });
 
-// 2. 自动检查登录状态
 onLoad(() => {
   if (userStore.token) {
-    // 如果已经登录，直接跳转到首页
-    uni.switchTab({
-      url: '/pages/index/index'
-    });
+    uni.switchTab({ url: '/pages/index/index' });
   }
 });
 
-// 3. 登录逻辑实现
 const handleLogin = async () => {
-  // 基础校验
   if (!loginForm.username || !loginForm.password) {
-    uni.showToast({ title: '请填写完整账号密码', icon: 'none' });
-    return;
-  }
-
-  // 账号规则校验（文档要求：账号需包含 elderly_ 前缀）
-  if (!loginForm.username.startsWith('elderly_')) {
-    uni.showToast({ title: '账号格式不正确 (需包含 elderly_)', icon: 'none' });
+    uni.showToast({ title: '请填写账号密码', icon: 'none' });
     return;
   }
 
   try {
-    uni.showLoading({ title: '正在登录...', mask: true });
+    uni.showLoading({ title: '正在安全验证...', mask: true });
     
-    // 调用登录接口
-    const res = await login({
+    // 调用登录接口 (后端返回 { data: { access_token, user } })
+    const { data } = await login({
       username: loginForm.username,
       password: loginForm.password
     });
 
-    // 存储 Token 和用户信息
-    userStore.setToken(res.access_token);
-    userStore.setUserInfo(res.user);
+    userStore.setToken(data.access_token);
+    userStore.setUserInfo(data.user);
 
     uni.hideLoading();
     uni.showToast({ title: '登录成功', icon: 'success' });
 
-    // 延迟跳转，提供更好的交互感知
     setTimeout(() => {
-      uni.switchTab({
-        url: '/pages/index/index'
-      });
+      uni.switchTab({ url: '/pages/index/index' });
     }, 1000);
 
   } catch (error: any) {
     uni.hideLoading();
-    // 错误已由 request 拦截器统一处理，这里可进行补充逻辑
     console.error('Login Error:', error);
   }
 };
-
 </script>
 
 <style scoped lang="scss">
 @import "@/styles/variables.scss";
 
 .login-container {
-  padding: 60rpx 40rpx;
-  background-color: $bg-color;
   min-height: 100vh;
+  background-color: $bg-color;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+.top-decor {
+  position: absolute;
+  top: -100rpx;
+  right: -100rpx;
+  width: 400rpx;
+  height: 400rpx;
+  background: radial-gradient(circle, $primary-light 0%, transparent 70%);
+  z-index: 0;
 }
 
 .login-header {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 80rpx;
-  margin-bottom: 100rpx;
+  margin-top: 140rpx;
+  margin-bottom: 60rpx;
 
-  .logo {
-    width: 180rpx;
-    height: 180rpx;
-    margin-bottom: 24rpx;
-    /* 适老化圆角 */
-    border-radius: 20rpx;
+  .logo-wrap {
+    width: 200rpx;
+    height: 200rpx;
+    background: #FFFFFF;
+    border-radius: 60rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: $card-shadow;
+    margin-bottom: 40rpx;
+    .logo { width: 140rpx; height: 140rpx; }
   }
 
   .title {
-    font-weight: bold;
+    font-weight: 900;
     color: $primary-color;
-    margin-bottom: 8rpx;
+    margin-bottom: 12rpx;
+    letter-spacing: 2rpx;
   }
 
   .subtitle {
     color: $text-color-light;
+    opacity: 0.8;
   }
 }
 
-.login-form {
-  .input-item {
-    margin-bottom: 48rpx;
+.login-form-card {
+  position: relative;
+  z-index: 1;
+  margin: 0 40rpx;
+  background: #FFFFFF;
+  border-radius: 48rpx;
+  padding: 60rpx 40rpx;
+  box-shadow: $card-shadow;
 
-    .label {
-      display: block;
-      font-weight: bold;
-      color: $text-color;
-      margin-bottom: 20rpx;
+  .form-title {
+    font-weight: 800;
+    color: $text-color;
+    margin-bottom: 48rpx;
+    text-align: center;
+  }
+
+  .input-item {
+    margin-bottom: 40rpx;
+
+    .label-row {
+      display: flex;
+      align-items: center;
+      gap: 12rpx;
+      margin-bottom: 16rpx;
       padding-left: 8rpx;
+      .label { font-weight: bold; color: $text-color; }
     }
 
     .input-wrapper {
-      background-color: #F5F7FA;
+      background-color: $primary-light;
       border-radius: 24rpx;
       padding: 0 32rpx;
-      border: 4rpx solid transparent;
-      transition: all 0.3s ease;
+      border: 3rpx solid transparent;
+      transition: all 0.2s;
 
       &:focus-within {
         border-color: $primary-color;
-        background-color: #E8F3FF;
+        background-color: #FFFFFF;
       }
 
       .input {
         width: 100%;
-        height: 120rpx; /* 加大交互热区，方便老年人操作 */
+        height: 110rpx;
         color: $text-color;
       }
-
-      .placeholder {
-        color: #999;
-      }
+      .placeholder { color: $text-color-muted; }
     }
   }
 
   .button-area {
-    margin-top: 80rpx;
-    /* 移除原有冗余 button 样式，依赖 ElderlyButton 特供版 */
+    margin-top: 60rpx;
+  }
+  
+  .tips {
+    margin-top: 32rpx;
+    text-align: center;
+    .tip-text { color: $text-color-muted; line-height: 1.5; }
   }
 }
 
-.footer-tips {
+.footer {
   margin-top: auto;
   text-align: center;
-  padding-bottom: 40rpx;
-
-  .tip-text {
-    color: #999;
+  padding: 60rpx 0;
+  .copyright {
+    font-size: 24rpx;
+    color: $text-color-muted;
   }
 }
 </style>

@@ -8,5 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     ElderlyButton: typeof import('./src/components/ElderlyButton.vue')['default']
+    UButton: typeof import('uview-pro/components/u-button/u-button.vue')['default']
+    UIcon: typeof import('uview-pro/components/u-icon/u-icon.vue')['default']
   }
 }

@@ -1,92 +1,140 @@
 <template>
-  <view class="container" :style="{ '--base-font-size': settingsStore.fontSize + 'px' }">
-    <!-- 自定义导航栏：解决微信小程序胶囊避让 -->
-    <view class="custom-navbar" :style="{ paddingTop: statusBarHeight + 'px', height: navBarHeight + 'px' }">
-      <view class="nav-content">
-        <view class="greeting">
-          <text class="weather-icon">🌤️</text>
-          <text class="user-name" :style="{ fontSize: (settingsStore.fontSize + 2) + 'px' }">
-            {{ userInfo?.nickname || '张爷爷' }}，{{ greeting }}
-          </text>
+  <view class="home-container" :style="{ '--base-font-size': settingsStore.fontSize + 'px' }">
+    <!-- 1. 沉浸式大顶部区域 (Extended Hero Section) -->
+    <view class="hero-section">
+      <!-- 状态栏占位 -->
+      <view :style="{ height: statusBarHeight + 'px' }"></view>
+      
+      <!-- 顶部信息流 -->
+      <view class="hero-content" :style="{ minHeight: (navBarHeight + 120) + 'px' }">
+        <view class="user-greeting">
+          <view class="avatar-box">
+             <image class="avatar" src="https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png" mode="aspectFill" />
+          </view>
+          <view class="greeting-text">
+            <text class="title" :style="{ fontSize: (settingsStore.fontSize + 6) + 'px' }">
+              {{ userInfo?.nickname || userInfo?.username }}，{{ greeting }}
+            </text>
+            <text class="subtitle" :style="{ fontSize: settingsStore.fontSize + 'px' }">
+              愿您今天平安健康，心情舒畅
+            </text>
+          </view>
         </view>
-        <view class="nav-info">
-          <text class="date">{{ currentDate }}</text>
+        
+        <view class="weather-pill">
+          <text class="icon">🌤️</text>
+          <view class="info">
+            <text class="temp" :style="{ fontSize: settingsStore.fontSize + 'px' }">22°C</text>
+            <text class="city">多云 · 适宜活动</text>
+          </view>
         </view>
       </view>
     </view>
 
-    <!-- 占位符，防止内容被固定导航栏遮挡 -->
-    <view :style="{ height: (statusBarHeight + navBarHeight) + 'px' }"></view>
-
-    <!-- 功能入口金刚区 -->
-    <view class="grid-section">
-      <view class="grid-item" v-for="item in gridItems" :key="item.path" @click="handleNavigate(item.path)">
-        <view class="icon-box" :style="{ backgroundColor: item.color }">
-          <text class="grid-icon">{{ item.icon }}</text>
+    <!-- 2. 功能金刚区 (Floated Category Grid) -->
+    <view class="main-content">
+      <view class="grid-card">
+        <view 
+          class="grid-item" 
+          v-for="item in gridItems" 
+          :key="item.path" 
+          @click="handleNavigate(item.path)"
+          class-active="item-active"
+        >
+          <view class="icon-wrap" :style="{ backgroundColor: item.color }">
+            <u-icon :name="item.icon" size="64" :color="item.iconColor"></u-icon>
+          </view>
+          <text class="label" :style="{ fontSize: settingsStore.fontSize + 'px' }">{{ item.label }}</text>
         </view>
-        <text class="grid-label" :style="{ fontSize: settingsStore.fontSize + 'px' }">{{ item.label }}</text>
       </view>
-    </view>
 
-    <!-- 今日推荐 -->
-    <view class="section-card">
-      <view class="section-title">
-        <text class="title-text" :style="{ fontSize: (settingsStore.fontSize + 2) + 'px' }">🎯 今日推荐</text>
+      <!-- 3. 健康概览小卡片 (Quick Health Summary) -->
+      <view class="section-container">
+        <view class="health-summary-card" @click="handleNavigate('/pages/health/index')">
+          <view class="card-header">
+             <text class="card-title">💓 健康守护</text>
+             <text class="time">最后记录：今天 10:30</text>
+          </view>
+          <view class="card-body">
+            <view class="indicator">
+              <text class="val">128/82</text>
+              <text class="unit">血压</text>
+            </view>
+            <view class="divider"></view>
+            <view class="indicator">
+              <text class="val">72</text>
+              <text class="unit">心率</text>
+            </view>
+            <u-button type="primary" size="mini" shape="circle" :plain="true" class="record-btn">去记录</u-button>
+          </view>
+        </view>
       </view>
-      <view class="service-list">
-        <view class="service-card" v-for="service in recommendations" :key="service.id">
-          <image class="service-img" src="https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png" mode="aspectFill" />
-          <view class="service-info">
-            <text class="service-name" :style="{ fontSize: settingsStore.fontSize + 'px' }">{{ service.name }}</text>
-            <view class="service-bottom">
-              <text class="service-price">¥{{ service.price }}</text>
-              <elderly-button class="mini-btn" @click="handleBooking(service)">
-                立即预约
-              </elderly-button>
+
+      <!-- 4. 服务推荐区 (Service Recommendations) -->
+      <view class="section-container">
+        <view class="section-header">
+          <text class="section-title">✨ 为您甄选</text>
+          <text class="more" @click="handleNavigate('/pages/service/list')">查看全部 ></text>
+        </view>
+        <view class="service-scroll">
+          <view 
+            class="service-item" 
+            v-for="service in recommendations" 
+            :key="service.id"
+            @click="handleBooking(service)"
+          >
+            <image class="service-img" :src="service.img" mode="aspectFill" />
+            <view class="service-info">
+              <text class="name" :style="{ fontSize: settingsStore.fontSize + 'px' }">{{ service.name }}</text>
+              <view class="price-row">
+                <text class="price">¥{{ service.price }}</text>
+                <text class="unit">/次</text>
+              </view>
             </view>
           </view>
         </view>
       </view>
     </view>
 
-    <!-- 固定底部 SOS 按钮 -->
-    <view class="sos-container">
-      <view class="sos-btn" @click="handleSOS">
-        <text class="sos-text">🔴 一 键 紧 急 求 助</text>
+    <!-- 5. 紧急求救 (SOS Floating Action Button) -->
+    <view class="sos-wrapper">
+      <view class="sos-btn-outer" @click="handleSOS">
+        <view class="sos-btn-inner">
+           <text class="sos-icon">🆘</text>
+           <text class="sos-label">紧急求助</text>
+        </view>
       </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useSettingsStore } from '@/stores/settings';
 import { useUserStore } from '@/stores/user';
-import ElderlyButton from '@/components/ElderlyButton.vue';
 
 const settingsStore = useSettingsStore();
 const userStore = useUserStore();
 const userInfo = computed(() => userStore.userInfo);
 
-// 系统信息
+// 系统高度适配
 const statusBarHeight = ref(20);
 const navBarHeight = ref(44);
 
-// 业务数据
-const greeting = ref('下午好！');
-const currentDate = ref('2026年2月27日 星期五');
+// 业务状态
+const greeting = ref('下午好');
 const gridItems = [
-  { label: '服务预约', icon: '📋', path: '/pages/service/list', color: '#E8F3FF' },
-  { label: '健康记录', icon: '🩺', path: '/pages/health/record', color: '#EEFBF5' },
-  { label: '求助记录', icon: '🆘', path: '/pages/health/index', color: '#FFF2F2' },
-  { label: '订单管理', icon: '📦', path: '/pages/order/list', color: '#FFF8E6' }
+  { label: '服务预约', icon: 'order', iconColor: '#0891B2', color: '#E0F2FE', path: '/pages/service/list' },
+  { label: '健康记录', icon: 'heart', iconColor: '#22C55E', color: '#F0FDF4', path: '/pages/health/record' },
+  { label: '订单管理', icon: 'bag', iconColor: '#F59E0B', color: '#FFFBEB', path: '/pages/order/list' },
+  { label: '我的家属', icon: 'man-add', iconColor: '#8B5CF6', color: '#F5F3FF', path: '/pages/profile/index' }
 ];
 
 const recommendations = ref([
-  { id: 1, name: '送餐服务', price: 15, star: 4.8 },
-  { id: 2, name: '药品配送', price: 8, star: 4.9 },
-  { id: 3, name: '上门理发', price: 30, star: 4.7 }
+  { id: 1, name: '营养午餐送餐', price: 15, img: 'https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png' },
+  { id: 2, name: '专业康复理疗', price: 120, img: 'https://img.js.design/assets/illustration/63f46f4a21578205691e/preview.png' },
+  { id: 3, name: '暖心陪诊服务', price: 80, img: 'https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png' }
 ]);
 
 onLoad(() => {
@@ -96,7 +144,7 @@ onLoad(() => {
     return;
   }
 
-  // 2. 获取胶囊按钮位置 (仅小程序)
+  // 2. 导航栏适配
   // #ifdef MP-WEIXIN
   const menuButton = uni.getMenuButtonBoundingClientRect();
   const res = uni.getSystemInfoSync();
@@ -104,18 +152,16 @@ onLoad(() => {
   navBarHeight.value = (menuButton.top - statusBarHeight.value) * 2 + menuButton.height;
   // #endif
 
-  // 3. 设置问候语
+  // 3. 动态问候
   const hour = new Date().getHours();
-  if (hour < 12) greeting.value = '上午好！';
-  else if (hour < 18) greeting.value = '下午好！';
-  else greeting.value = '晚上好！';
+  if (hour < 6) greeting.value = '凌晨好';
+  else if (hour < 11) greeting.value = '上午好';
+  else if (hour < 13) greeting.value = '中午好';
+  else if (hour < 18) greeting.value = '下午好';
+  else greeting.value = '晚上好';
 });
 
-
-const handleNavigate = (path: string) => {
-  uni.navigateTo({ url: path });
-};
-
+const handleNavigate = (url: string) => uni.navigateTo({ url });
 const handleBooking = (service: any) => {
   uni.navigateTo({
     url: `/pages/service/reserve?id=${service.id}&name=${encodeURIComponent(service.name)}`
@@ -124,15 +170,16 @@ const handleBooking = (service: any) => {
 
 const handleSOS = () => {
   uni.showModal({
-    title: '紧急求助',
-    content: '确定需要紧急帮助吗？系统将立即通知您的家属和管理员。',
-    confirmColor: '#D54941',
+    title: '紧急求助确认',
+    content: '确定向家属及社区管家发送求援信号？（误触请点击取消）',
+    confirmText: '立刻呼叫',
+    confirmColor: '#E11D48',
     success: (res) => {
       if (res.confirm) {
-        uni.showLoading({ title: '求助发送中...' });
+        uni.showLoading({ title: '呼叫中...' });
         setTimeout(() => {
           uni.hideLoading();
-          uni.showToast({ title: '求助已发出', icon: 'success' });
+          uni.showToast({ title: '信号已发出，请保持电话通畅', icon: 'success' });
         }, 1500);
       }
     }
@@ -143,157 +190,224 @@ const handleSOS = () => {
 <style scoped lang="scss">
 @import "@/styles/variables.scss";
 
-.container {
+.home-container {
   min-height: 100vh;
-  background-color: #F5F5F5;
-  padding-bottom: 200rpx; // 为底部求助按钮留空
+  background-color: $bg-color;
+  padding-bottom: 240rpx;
 }
 
-.custom-navbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background-color: #FFFFFF;
-  z-index: 1000;
-  .nav-content {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 0 32rpx;
-    height: 100%;
-  }
-  .greeting {
-    display: flex;
-    align-items: center;
-    .user-name {
-      font-weight: bold;
-      color: $text-color;
-      margin-left: 12rpx;
-    }
-  }
-  .nav-info {
-    font-size: 24rpx;
-    color: $text-color-light;
-    margin-top: 4rpx;
-  }
-}
+// 1. Hero 顶部大感官区
+.hero-section {
+  background: linear-gradient(135deg, $primary-color 0%, $secondary-color 100%);
+  border-bottom-left-radius: 64rpx;
+  border-bottom-right-radius: 64rpx;
+  color: #FFFFFF;
+  padding: 0 40rpx 80rpx;
 
-.grid-section {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 24rpx;
-  padding: 32rpx;
-  .grid-item {
-    background-color: #FFFFFF;
-    border-radius: 24rpx;
-    padding: 40rpx 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
-    .icon-box {
-      width: 100rpx;
-      height: 100rpx;
-      border-radius: 50rpx;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      margin-bottom: 16rpx;
-      .grid-icon {
-        font-size: 50rpx;
-      }
-    }
-    .grid-label {
-      font-weight: bold;
-      color: $text-color;
-    }
-  }
-}
-
-.section-card {
-  margin: 0 32rpx;
-  background-color: #FFFFFF;
-  border-radius: 24rpx;
-  padding: 32rpx;
-  .section-title {
-    margin-bottom: 24rpx;
-    .title-text {
-      font-weight: bold;
-      color: $text-color;
-    }
-  }
-}
-
-.service-list {
-  display: flex;
-  flex-direction: column;
-  gap: 24rpx;
-}
-
-.service-card {
-  display: flex;
-  gap: 20rpx;
-  padding-bottom: 24rpx;
-  border-bottom: 1px solid #F0F0F0;
-  &:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-  }
-  .service-img {
-    width: 160rpx;
-    height: 160rpx;
-    border-radius: 12rpx;
-    background-color: #F9F9F9;
-  }
-  .service-info {
-    flex: 1;
+  .hero-content {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    .service-name {
+    padding-top: 20rpx;
+  }
+
+  .user-greeting {
+    display: flex;
+    align-items: center;
+    gap: 24rpx;
+    margin-bottom: 40rpx;
+    
+    .avatar-box {
+      width: 120rpx;
+      height: 120rpx;
+      border-radius: 60rpx;
+      border: 4rpx solid rgba(255,255,255,0.4);
+      overflow: hidden;
+      background: $primary-light;
+      .avatar { width: 100%; height: 100%; }
+    }
+
+    .greeting-text {
+      flex: 1;
+      .title { font-weight: 800; display: block; margin-bottom: 8rpx; }
+      .subtitle { color: rgba(255,255,255,0.85); display: block; }
+    }
+  }
+
+  .weather-pill {
+    align-self: flex-start;
+    background: rgba(255,255,255,0.15);
+    backdrop-filter: blur(10rpx);
+    border-radius: 40rpx;
+    padding: 16rpx 32rpx;
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+    border: 1rpx solid rgba(255,255,255,0.2);
+    
+    .icon { font-size: 40rpx; }
+    .info {
+       display: flex;
+       flex-direction: column;
+       .temp { font-weight: bold; }
+       .city { font-size: 24rpx; opacity: 0.8; }
+    }
+  }
+}
+
+// 2. 浮动内容区
+.main-content {
+  margin-top: -60rpx;
+  padding: 0 32rpx;
+}
+
+// 金刚区卡片
+.grid-card {
+  background: #FFFFFF;
+  border-radius: 40rpx;
+  padding: 40rpx 20rpx;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  box-shadow: $card-shadow;
+  margin-bottom: 32rpx;
+
+  .grid-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16rpx;
+    &:active { opacity: 0.7; transform: scale(0.95); transition: all 0.2s; }
+    
+    .icon-wrap {
+      width: 100rpx;
+      height: 100rpx;
+      border-radius: 32rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .label {
       font-weight: bold;
       color: $text-color;
     }
-    .service-bottom {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      .service-price {
-        font-size: 36rpx;
-        color: $danger-color;
-        font-weight: bold;
-      }
-      .mini-btn {
-        margin: 0;
-        min-height: 80rpx;
-        padding: 0 24rpx;
+  }
+}
+
+// 指标卡片
+.health-summary-card {
+  background: #FFFFFF;
+  border-radius: 40rpx;
+  padding: 32rpx;
+  box-shadow: $item-shadow;
+  margin-bottom: 32rpx;
+  
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24rpx;
+    .card-title { font-weight: bold; color: $text-color; font-size: 36rpx; }
+    .time { font-size: 24rpx; color: $text-color-muted; }
+  }
+
+  .card-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    
+    .indicator {
+      text-align: center;
+      .val { font-size: 44rpx; font-weight: 800; color: $primary-color; display: block; }
+      .unit { font-size: 24rpx; color: $text-color-light; }
+    }
+    
+    .divider { width: 2rpx; height: 60rpx; background: #EEE; }
+    .record-btn { margin: 0; }
+  }
+}
+
+// 服务推荐
+.section-container {
+  margin-bottom: 40rpx;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+  padding: 0 8rpx;
+  .section-title { font-size: 36rpx; font-weight: bold; color: $text-color; }
+  .more { font-size: 28rpx; color: $primary-color; }
+}
+
+.service-scroll {
+  display: flex;
+  gap: 24rpx;
+  overflow-x: auto;
+  padding: 4rpx;
+  &::-webkit-scrollbar { display: none; }
+  
+  .service-item {
+    flex-shrink: 0;
+    width: 320rpx;
+    background: #FFFFFF;
+    border-radius: 32rpx;
+    overflow: hidden;
+    box-shadow: $item-shadow;
+    
+    .service-img { width: 100%; height: 200rpx; background: $primary-light; }
+    
+    .service-info {
+      padding: 20rpx;
+      .name { font-weight: bold; color: $text-color; margin-bottom: 12rpx; display: block; }
+      .price-row {
+        .price { color: $danger-color; font-size: 36rpx; font-weight: bold; }
+        .unit { color: $text-color-light; font-size: 24rpx; margin-left: 4rpx; }
       }
     }
   }
 }
 
-.sos-container {
+// 🆘 SOS 绝对视觉中心
+.sos-wrapper {
   position: fixed;
-  bottom: 40rpx;
-  left: 32rpx;
-  right: 32rpx;
-  z-index: 99;
-  .sos-btn {
-    height: 120rpx;
-    background-color: $danger-color;
-    border-radius: 60rpx;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 40rpx 32rpx 60rpx;
+  pointer-events: none;
+  background: linear-gradient(to top, $bg-color 70%, transparent);
+
+  .sos-btn-outer {
+    pointer-events: auto;
+    background: $danger-color;
+    height: 140rpx;
+    border-radius: 70rpx;
     display: flex;
-    justify-content: center;
     align-items: center;
-    box-shadow: 0 8rpx 20rpx rgba(213, 73, 65, 0.3);
-    &:active {
-      opacity: 0.9;
+    justify-content: center;
+    box-shadow: 0 12rpx 32rpx rgba(225, 29, 72, 0.4);
+    position: relative;
+    overflow: hidden;
+    
+    &::after { 
+      content: ''; 
+      position: absolute; 
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
     }
-    .sos-text {
-      color: #FFFFFF;
-      font-size: 36rpx;
-      font-weight: bold;
+
+    &:active { transform: scale(0.96); opacity: 0.95; }
+    
+    .sos-btn-inner {
+      display: flex;
+      align-items: center;
+      gap: 16rpx;
+      z-index: 1;
+      .sos-icon { font-size: 56rpx; }
+      .sos-label { color: #FFFFFF; font-size: 40rpx; font-weight: 900; letter-spacing: 4rpx; }
     }
   }
 }

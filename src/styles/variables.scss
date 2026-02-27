@@ -1,15 +1,20 @@
-// 强制背景色 #FFFFFF
-$bg-color: #FFFFFF;
+// 适老化社区医疗配色系统
+$bg-color: #ECFEFF; // 极浅青色背景，符合医疗/健康视觉
+$white: #FFFFFF;
 
-// 正文 #333333（确保对比度 ≥ 4.5:1）
-$text-color: #333333;
-$text-color-light: #666666;
+// 字体颜色：确保高对比度 (WCAG 2.0 AA)
+$text-color: #164E63; // 深青色文字
+$text-color-light: #475569; // 柔和的次要文字
+$text-color-muted: #94A3B8;
 
-// 字体大小，配合 store 使用，这里提供默认值或特定场景值
-$font-size-base: 20px;
-$font-size-large: 24px;
-$font-size-small: 18px;
+// 品牌核心色 (Fresh Cyan & Clean Green)
+$primary-color: #0891B2; // 主色调：专业感强的青色
+$primary-light: #CFFAFE;
+$secondary-color: #22D3EE;
 
-// 品牌色，考虑适老化提供高对比度颜色
-$primary-color: #0052D9; // 一种高对比度蓝色
-$danger-color: #D54941;
+$success-color: #22C55E; // 成功/预约色
+$danger-color: #E11D48; // 求助/紧急色
+
+// 交互阴影
+$card-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+$item-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
