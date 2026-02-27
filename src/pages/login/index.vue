@@ -82,12 +82,13 @@ const handleLogin = () => {
 
 		uni.showToast({ title: "登录成功", icon: "success" });
 
-		// 延迟跳转至首页，给老年人留出阅读 Toast 的时间
-		setTimeout(() => {
-			uni.switchTab({
-				url: "/pages/home/index",
-			});
-		}, 1000);
+    // 延迟跳转至首页，给老年人留出阅读 Toast 的时间
+    setTimeout(() => {
+      uni.switchTab({
+        url: "/pages/index/index",
+      });
+    }, 1000);
+
 	}, 1000);
 };
 </script>
