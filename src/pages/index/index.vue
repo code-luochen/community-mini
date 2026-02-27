@@ -90,7 +90,13 @@ const recommendations = ref([
 ]);
 
 onLoad(() => {
-  // 获取胶囊按钮位置 (仅小程序)
+  // 1. 登录校验
+  if (!userStore.token) {
+    uni.reLaunch({ url: '/pages/login/index' });
+    return;
+  }
+
+  // 2. 获取胶囊按钮位置 (仅小程序)
   // #ifdef MP-WEIXIN
   const menuButton = uni.getMenuButtonBoundingClientRect();
   const res = uni.getSystemInfoSync();
@@ -98,12 +104,13 @@ onLoad(() => {
   navBarHeight.value = (menuButton.top - statusBarHeight.value) * 2 + menuButton.height;
   // #endif
 
-  // 设置问候语
+  // 3. 设置问候语
   const hour = new Date().getHours();
   if (hour < 12) greeting.value = '上午好！';
   else if (hour < 18) greeting.value = '下午好！';
   else greeting.value = '晚上好！';
 });
+
 
 const handleNavigate = (path: string) => {
   uni.navigateTo({ url: path });

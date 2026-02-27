@@ -1,103 +1,144 @@
 <template>
-  <view class="login-container" :style="{ '--font-size': settingsStore.fontSize + 'px' }">
+  <view class="login-container" :style="{ '--base-font-size': settingsStore.fontSize + 'px' }">
+    <!-- 1. 头部 Logo 设计 -->
     <view class="login-header">
       <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
       <text class="title" :style="{ fontSize: `${settingsStore.fontSize + 4}px` }">小区老年人服务</text>
+      <text class="subtitle" :style="{ fontSize: `${settingsStore.fontSize - 2}px` }">适老化社区，智慧养老</text>
     </view>
 
+    <!-- 2. 登录表单 -->
     <view class="login-form">
-      <view class="input-group">
+      <view class="input-item">
         <text class="label" :style="{ fontSize: `${settingsStore.fontSize}px` }">账号</text>
-        <input 
-          class="input" 
-          v-model="account" 
-          placeholder="请输入账号" 
-          :style="{ fontSize: `${settingsStore.fontSize}px` }"
-        />
+        <view class="input-wrapper">
+          <input 
+            class="input" 
+            v-model="loginForm.username" 
+            placeholder="请输入账号 (需包含 elderly_)" 
+            placeholder-class="placeholder"
+            :style="{ fontSize: `${settingsStore.fontSize}px` }"
+          />
+        </view>
       </view>
 
-      <view class="input-group">
+      <view class="input-item">
         <text class="label" :style="{ fontSize: `${settingsStore.fontSize}px` }">密码</text>
-        <input 
-          class="input" 
-          v-model="password" 
-          type="password" 
-          placeholder="请输入密码" 
-          :style="{ fontSize: `${settingsStore.fontSize}px` }"
-        />
+        <view class="input-wrapper">
+          <input 
+            class="input" 
+            v-model="loginForm.password" 
+            type="password" 
+            placeholder="请输入密码" 
+            placeholder-class="placeholder"
+            :style="{ fontSize: `${settingsStore.fontSize}px` }"
+          />
+        </view>
       </view>
 
+      <!-- 登录按钮 -->
       <view class="button-area">
         <ElderlyButton 
-          voiceText="点击登录" 
+          :voice-text="`点击登录，当前账号为${loginForm.username || '空'}`" 
           @click="handleLogin"
-          style="width: 100%;"
         >
           登 录
         </ElderlyButton>
       </view>
     </view>
 
-    <view class="tips">
-      <text :style="{ fontSize: `${settingsStore.fontSize - 2}px` }">提示：账号需包含 elderly_ 前缀</text>
+    <!-- 3. 技术支持与提示 -->
+    <view class="footer-tips">
+      <text class="tip-text" :style="{ fontSize: `${settingsStore.fontSize - 4}px` }">
+        如无法登录，请联系小区管理员协助重置
+      </text>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import ElderlyButton from "@/components/ElderlyButton.vue";
-import { useSettingsStore } from "@/stores/settings";
-import { useUserStore } from "@/stores/user";
+import { reactive, onMounted } from 'vue';
+import { onLoad, onShow } from '@dcloudio/uni-app';
+import { useSettingsStore } from '@/stores/settings';
+import { useUserStore } from '@/stores/user';
+import { login } from '@/api/auth';
+import ElderlyButton from '@/components/ElderlyButton.vue';
 
-const account = ref("");
-const password = ref("");
+/**
+ * @description 小区老年人登录页面
+ * @author Uniapp Frontend Expert
+ */
 
-const userStore = useUserStore();
 const settingsStore = useSettingsStore();
+const userStore = useUserStore();
 
-const handleLogin = () => {
-	if (!account.value || !password.value) {
-		uni.showToast({ title: "请输入账号和密码", icon: "none" });
-		return;
-	}
+// 1. 表单状态定义
+const loginForm = reactive({
+  username: '',
+  password: ''
+});
 
-	// 校验账号前缀规则
-	if (!account.value.startsWith("elderly_")) {
-		uni.showToast({ title: "账号必须包含 elderly_ 前缀", icon: "none" });
-		return;
-	}
+// 2. 自动检查登录状态
+onLoad(() => {
+  if (userStore.token) {
+    // 如果已经登录，直接跳转到首页
+    uni.switchTab({
+      url: '/pages/index/index'
+    });
+  }
+});
 
-	// 模拟登录成功流程
-	uni.showLoading({ title: "登录中..." });
-	setTimeout(() => {
-		uni.hideLoading();
+// 3. 登录逻辑实现
+const handleLogin = async () => {
+  // 基础校验
+  if (!loginForm.username || !loginForm.password) {
+    uni.showToast({ title: '请填写完整账号密码', icon: 'none' });
+    return;
+  }
 
-		// 存储 Token 和用户信息
-		userStore.setToken("mock_token_" + Date.now());
-		userStore.setUserInfo({
-			name: account.value.replace("elderly_", ""),
-			role: "elderly",
-		});
+  // 账号规则校验（文档要求：账号需包含 elderly_ 前缀）
+  if (!loginForm.username.startsWith('elderly_')) {
+    uni.showToast({ title: '账号格式不正确 (需包含 elderly_)', icon: 'none' });
+    return;
+  }
 
-		uni.showToast({ title: "登录成功", icon: "success" });
+  try {
+    uni.showLoading({ title: '正在登录...', mask: true });
+    
+    // 调用登录接口
+    const res = await login({
+      username: loginForm.username,
+      password: loginForm.password
+    });
 
-    // 延迟跳转至首页，给老年人留出阅读 Toast 的时间
+    // 存储 Token 和用户信息
+    userStore.setToken(res.access_token);
+    userStore.setUserInfo(res.user);
+
+    uni.hideLoading();
+    uni.showToast({ title: '登录成功', icon: 'success' });
+
+    // 延迟跳转，提供更好的交互感知
     setTimeout(() => {
       uni.switchTab({
-        url: "/pages/index/index",
+        url: '/pages/index/index'
       });
     }, 1000);
 
-	}, 1000);
+  } catch (error: any) {
+    uni.hideLoading();
+    // 错误已由 request 拦截器统一处理，这里可进行补充逻辑
+    console.error('Login Error:', error);
+  }
 };
+
 </script>
 
 <style scoped lang="scss">
 @import "@/styles/variables.scss";
 
 .login-container {
-  padding: 40rpx;
+  padding: 60rpx 40rpx;
   background-color: $bg-color;
   min-height: 100vh;
   display: flex;
@@ -108,55 +149,77 @@ const handleLogin = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 100rpx;
-  margin-bottom: 80rpx;
+  margin-top: 80rpx;
+  margin-bottom: 100rpx;
 
   .logo {
-    width: 160rpx;
-    height: 160rpx;
-    margin-bottom: 20rpx;
+    width: 180rpx;
+    height: 180rpx;
+    margin-bottom: 24rpx;
+    /* 适老化圆角 */
+    border-radius: 20rpx;
   }
 
   .title {
     font-weight: bold;
     color: $primary-color;
+    margin-bottom: 8rpx;
+  }
+
+  .subtitle {
+    color: $text-color-light;
   }
 }
 
 .login-form {
-  .input-group {
-    margin-bottom: 40rpx;
+  .input-item {
+    margin-bottom: 48rpx;
 
     .label {
       display: block;
-      margin-bottom: 16rpx;
       font-weight: bold;
       color: $text-color;
+      margin-bottom: 20rpx;
+      padding-left: 8rpx;
     }
 
-    .input {
-      width: 100%;
-      height: 112rpx; /* 适老化大尺寸输入框 */
-      background: #F5F7FA;
-      border-radius: 16rpx;
+    .input-wrapper {
+      background-color: #F5F7FA;
+      border-radius: 24rpx;
       padding: 0 32rpx;
-      box-sizing: border-box;
-      border: 2rpx solid #DCDFE6;
-      
-      &:focus {
+      border: 4rpx solid transparent;
+      transition: all 0.3s ease;
+
+      &:focus-within {
         border-color: $primary-color;
+        background-color: #E8F3FF;
+      }
+
+      .input {
+        width: 100%;
+        height: 120rpx; /* 加大交互热区，方便老年人操作 */
+        color: $text-color;
+      }
+
+      .placeholder {
+        color: #999;
       }
     }
   }
 
   .button-area {
-    margin-top: 60rpx;
+    margin-top: 80rpx;
+    /* 移除原有冗余 button 样式，依赖 ElderlyButton 特供版 */
   }
 }
 
-.tips {
-  margin-top: 40rpx;
+.footer-tips {
+  margin-top: auto;
   text-align: center;
-  color: $text-color-light;
+  padding-bottom: 40rpx;
+
+  .tip-text {
+    color: #999;
+  }
 }
 </style>

@@ -1,85 +1,104 @@
 ---
 name: uniapp-frontend-expert
-description: [TODO: Complete and informative explanation of what the skill does and when to use it. Include WHEN to use this skill - specific scenarios, file types, or tasks that trigger it.]
+description: Senior Frontend Engineer proficient in uniapp and Vue3. Use this skill to write high-quality, reusable mini-program page and component code using Vue3 script setup and TypeScript. It excels at uniapp lifecycle management, cross-platform compatibility, and performance optimization for long lists.
 ---
 
-# Uniapp Frontend Expert
+# Uniapp & Vue3 Frontend Expert
 
-## Overview
+You are a Senior Frontend Engineer specializing in uniapp and Vue3 development. Your goal is to produce production-grade, maintainable, and high-performance code for mini-programs and cross-platform applications.
 
-[TODO: 1-2 sentences explaining what this skill enables]
+## Technical Standards
 
-## Structuring This Skill
+### 1. Syntax & Logic
+- **Vue3 SFC**: Always use `<script setup lang="ts">`.
+- **Reactivity**: Prefer `ref` for primitives and `reactive` for complex objects where appropriate.
+- **TypeScript**: Define strict interfaces/types for props, emits, and API responses.
 
-[TODO: Choose the structure that best fits this skill's purpose. Common patterns:
+### 2. Lifecycle Management
+Distinguish between Vue3 core lifecycles and uniapp-specific page lifecycles:
+- **Vue3**: `onMounted`, `onUnmounted`, `watch`, `computed`.
+- **uniapp Page**: `onLoad`, `onShow`, `onReady`, `onReachBottom` (for pagination), `onPullDownRefresh`.
 
-**1. Workflow-Based** (best for sequential processes)
-- Works well when there are clear step-by-step procedures
-- Example: DOCX skill with "Workflow Decision Tree" → "Reading" → "Creating" → "Editing"
-- Structure: ## Overview → ## Workflow Decision Tree → ## Step 1 → ## Step 2...
+### 3. Styling & Layout
+- **rpx**: Use `rpx` for responsive layouts across different screen widths.
+- **Scoped CSS**: Use `<style scoped lang="scss">` to prevent style leakage.
+- **Conditional Styling**: Use standard Vue `:class` and `:style` bindings.
+- **Unsupported Selectors**: Avoid `*`, `body`, and complex CSS selectors not supported by mini-program engines.
 
-**2. Task-Based** (best for tool collections)
-- Works well when the skill offers different operations/capabilities
-- Example: PDF skill with "Quick Start" → "Merge PDFs" → "Split PDFs" → "Extract Text"
-- Structure: ## Overview → ## Quick Start → ## Task Category 1 → ## Task Category 2...
+### 4. Cross-Platform Compatibility
+Use conditional compilation blocks to handle platform-specific logic or UI.
+```typescript
+// #ifdef MP-WEIXIN
+console.log('Running on WeChat Mini Program');
+// #endif
 
-**3. Reference/Guidelines** (best for standards or specifications)
-- Works well for brand guidelines, coding standards, or requirements
-- Example: Brand styling with "Brand Guidelines" → "Colors" → "Typography" → "Features"
-- Structure: ## Overview → ## Guidelines → ## Specifications → ## Usage...
+// #ifdef H5
+console.log('Running on Web/H5');
+// #endif
+```
 
-**4. Capabilities-Based** (best for integrated systems)
-- Works well when the skill provides multiple interrelated features
-- Example: Product Management with "Core Capabilities" → numbered capability list
-- Structure: ## Overview → ## Core Capabilities → ### 1. Feature → ### 2. Feature...
+### 5. Performance Optimization
+- **Long Lists**: Implement pagination using `onReachBottom`. For extreme lengths, use virtual list patterns.
+- **Image Optimization**: Use `mode="aspectFill"` and lazy loading where possible.
+- **Request Batches**: Minimize the number of concurrent `uni.request` calls.
 
-Patterns can be mixed and matched as needed. Most skills combine patterns (e.g., start with task-based, add workflow for complex operations).
+## Component Blueprint Template
 
-Delete this entire "Structuring This Skill" section when done - it's just guidance.]
+Every component/page you generate should follow this structure:
 
-## [TODO: Replace with the first main section based on chosen structure]
+```vue
+<template>
+  <view class="component-container">
+    <!-- UI Layout -->
+  </view>
+</template>
 
-[TODO: Add content here. See examples in existing skills:
-- Code samples for technical skills
-- Decision trees for complex workflows
-- Concrete examples with realistic user requests
-- References to scripts/templates/references as needed]
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { onLoad, onShow } from '@dcloudio/uni-app';
 
-## Resources
+// 1. Props & Emits
+interface Props {
+  title: string;
+}
+const props = defineProps<Props>();
+const emit = defineEmits(['action']);
 
-This skill includes example resource directories that demonstrate how to organize different types of bundled resources:
+// 2. Reactive State
+const list = ref<any[]>([]);
 
-### scripts/
-Executable code (Python/Bash/etc.) that can be run directly to perform specific operations.
+// 3. Lifecycles
+onLoad((options) => {
+  // Page initialization with options
+});
 
-**Examples from other skills:**
-- PDF skill: `fill_fillable_fields.py`, `extract_form_field_info.py` - utilities for PDF manipulation
-- DOCX skill: `document.py`, `utilities.py` - Python modules for document processing
+onMounted(() => {
+  // DOM-related initialization
+});
 
-**Appropriate for:** Python scripts, shell scripts, or any executable code that performs automation, data processing, or specific operations.
+// 4. Methods
+const handleAction = () => {
+  emit('action');
+};
+</script>
 
-**Note:** Scripts may be executed without loading into context, but can still be read by Claude for patching or environment adjustments.
+<style scoped lang="scss">
+.component-container {
+  /* Use rpx and variables */
+}
+</style>
+```
 
-### references/
-Documentation and reference material intended to be loaded into context to inform Claude's process and thinking.
+## Guidance for Lists (Pagination)
 
-**Examples from other skills:**
-- Product management: `communication.md`, `context_building.md` - detailed workflow guides
-- BigQuery: API reference documentation and query examples
-- Finance: Schema documentation, company policies
+When implementing lists, always include a loading state and an end-of-list check:
+1.  **State**: `list`, `page`, `loading`, `finished`.
+2.  **Event**: Detect `onReachBottom`.
+3.  **Logic**: Increment `page`, fetch data, append to `list`, if response length < limit set `finished = true`.
 
-**Appropriate for:** In-depth documentation, API references, database schemas, comprehensive guides, or any detailed information that Claude should reference while working.
-
-### assets/
-Files not intended to be loaded into context, but rather used within the output Claude produces.
-
-**Examples from other skills:**
-- Brand styling: PowerPoint template files (.pptx), logo files
-- Frontend builder: HTML/React boilerplate project directories
-- Typography: Font files (.ttf, .woff2)
-
-**Appropriate for:** Templates, boilerplate code, document templates, images, icons, fonts, or any files meant to be copied or used in the final output.
-
----
-
-**Any unneeded directories can be deleted.** Not every skill requires all three types of resources.
+## Checklist for Delivery
+- [ ] Is it using `<script setup>` and TypeScript?
+- [ ] Are uniapp lifecycles used correctly?
+- [ ] Is `rpx` used for layout?
+- [ ] Are platform differences handled via #ifdef?
+- [ ] Is there logic for list performance/pagination if applicable?
