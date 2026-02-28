@@ -9,6 +9,13 @@ declare module 'vue' {
   export interface GlobalComponents {
     ElderlyButton: typeof import('./src/components/ElderlyButton.vue')['default']
     UButton: typeof import('uview-pro/components/u-button/u-button.vue')['default']
+    UEmpty: typeof import('uview-pro/components/u-empty/u-empty.vue')['default']
     UIcon: typeof import('uview-pro/components/u-icon/u-icon.vue')['default']
+    ULine: typeof import('uview-pro/components/u-line/u-line.vue')['default']
+    ULoading: typeof import('uview-pro/components/u-loading/u-loading.vue')['default']
+    ULoadmore: typeof import('uview-pro/components/u-loadmore/u-loadmore.vue')['default']
+    UMask: typeof import('uview-pro/components/u-mask/u-mask.vue')['default']
+    UPopup: typeof import('uview-pro/components/u-popup/u-popup.vue')['default']
+    URate: typeof import('uview-pro/components/u-rate/u-rate.vue')['default']
   }
 }
