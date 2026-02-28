@@ -50,7 +50,7 @@
               <text class="service-time">创建时间：{{ formatDate(order.createdAt) }}</text>
               <view class="price-row">
                 <text class="price-label">金额</text>
-                <text class="price-val">¥{{ order.totalAmount }}</text>
+                <text class="price-val">¥{{ order.serviceSnapshot.price }}</text>
               </view>
             </view>
           </view>
@@ -215,6 +215,7 @@ const fetchOrders = async (isRefresh = false) => {
 
     const {data} = await getOrderList(params);
 
+    console.log("data==>",data);
 
     const newList = data.items || [];
     if (isRefresh) {
