@@ -74,7 +74,7 @@
       <view class="section-container">
         <view class="section-header">
           <text class="section-title">✨ 为您甄选</text>
-          <text class="more" @click="handleNavigate('/pages/service/list')">查看全部 ></text>
+          <text class="more" @click="handleNavigate('/pages/service/list')">查看全部</text>
         </view>
         <view class="service-scroll">
           <view 
