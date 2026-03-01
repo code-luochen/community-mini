@@ -12,10 +12,9 @@ export interface OrderModel {
     price: number;
     description: string;
   };
-  totalAmount: number;
-  status: number; // 0: 待接单, 1: 配送/服务中, 2: 待确认(待收货), 3: 已完成, 4: 已取消
-  evaluateStar: number;
-  evaluateContent: string;
+  status: number; // 0: 待接单, 1: 已接单, 2: 配送中, 3: 待评价, 4: 已完成, 5: 已取消
+  evaluation: number;
+  evaluationContent: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -48,7 +47,7 @@ export function getOrderList(params: QueryOrderParams) {
 export function confirmOrder(id: string) {
   return request<OrderModel>({
     url: `/api/order/${id}/status`,
-    method: 'PUT',
+    method: 'PATCH',
     data: {
       status: 3, // 3 为已完成
     }
@@ -61,10 +60,10 @@ export function confirmOrder(id: string) {
 export function evaluateOrder(id: string, evaluateStar: number, evaluateContent: string) {
   return request<OrderModel>({
     url: `/api/order/${id}/evaluate`,
-    method: 'PUT',
+    method: 'PATCH',
     data: {
-      evaluateStar,
-      evaluateContent
+      evaluation: evaluateStar,
+      evaluationContent: evaluateContent
     }
   });
 }

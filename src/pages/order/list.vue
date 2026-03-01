@@ -70,7 +70,7 @@
                </u-button>
                
                <u-button 
-                 v-if="order.status === 3 && !order.evaluateStar" 
+                 v-if="order.status === 3 && !order.evaluation" 
                  type="warning" 
                  shape="circle" 
                  :customStyle="btnStyle"
@@ -95,7 +95,7 @@
     </view>
 
     <!-- 4. 评价底部弹窗 -->
-    <u-popup :show="showPopup" mode="bottom" round="40rpx" @close="closePopup">
+    <u-popup v-model="showPopup" mode="bottom" round="40rpx" @close="closePopup">
       <view class="evaluate-popup">
         <view class="popup-header">
           <text class="popup-title" :style="{ fontSize: (settingsStore.fontSize + 4) + 'px' }">服务评价</text>
@@ -104,21 +104,21 @@
         <text class="popup-desc">请为此次服务进行打分，您的评价能帮助我们改进服务质量。</text>
 
         <view class="rate-box">
-          <u-rate v-model="evalForm.star" count="5" size="40" activeColor="#F59E0B" allowHalf="false"></u-rate>
+          <u-rate v-model="evalForm.star" :count="5" size="40" activeColor="#F59E0B" :allowHalf="false"></u-rate>
           <text class="rate-tip" :style="{ fontSize: (settingsStore.fontSize - 2) + 'px' }">
              {{ evalForm.star ? `${evalForm.star}星` : '点击星星打分' }}
           </text>
         </view>
 
         <view class="input-box">
-          <u--textarea 
+          <u-textarea 
             v-model="evalForm.content" 
             placeholder="这服务怎么样？写点评语吧..." 
             count 
             maxlength="100"
             height="180rpx"
             style="background: #F8FAFC"
-          ></u--textarea>
+          ></u-textarea>
         </view>
         
         <u-button 
@@ -151,9 +151,10 @@ const submitBtnStyle = { height: '110rpx', fontSize: '36rpx', fontWeight: 'bold'
 const loadTextOptions = { loadmore: '上滑加载更多', loading: '正在加载中', nomore: '我也是有底线的' };
 
 const tabList = [
-  { name: '全部订单', value: '' },
-  { name: '处理中', value: 1 },  // status: 1
-  { name: '待评价', value: 3 },  // status: 3 且未评价
+  { name: '全部', value: '' },
+  { name: '待接单', value: 0 },
+  { name: '配送中', value: 2 },
+  { name: '待评价', value: 3 },
 ];
 
 // 核心状态数据
@@ -209,14 +210,16 @@ const fetchOrders = async (isRefresh = false) => {
       limit: limit.value,
     };
     
+    // 强制当前登录人的角色过滤 (避免全部订单一起查出)
+    if (userStore.userInfo && userStore.userInfo.id) {
+      params.elderlyId = userStore.userInfo.id;
+    }
+    
     if (statusParam !== '') {
       params.status = Number(statusParam);
     }
 
     const {data} = await getOrderList(params);
-
-    console.log("data==>",data);
-
     const newList = data.items || [];
     if (isRefresh) {
       orderList.value = newList;
@@ -296,15 +299,15 @@ const submitEvaluate = async () => {
 // 工具函数
 const formatStatus = (s: number) => {
   const map: Record<number, string> = {
-    0: '待接单', 1: '服务中', 2: '待确认', 3: '已完成', 4: '已取消'
+    0: '待接单', 1: '已接单', 2: '配送中', 3: '待评价', 4: '已完成', 5: '已取消'
   };
   return map[s] || '未知';
 };
 
 const getStatusClass = (s: number) => {
-  if (s === 0 || s === 1) return 'primary';
-  if (s === 2) return 'warning';
-  if (s === 3) return 'success';
+  if (s === 0) return 'primary';
+  if (s === 1 || s === 2 || s === 3) return 'warning';
+  if (s === 4) return 'success';
   return 'muted';
 };
 

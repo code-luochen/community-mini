@@ -17,5 +17,6 @@ declare module 'vue' {
     UMask: typeof import('uview-pro/components/u-mask/u-mask.vue')['default']
     UPopup: typeof import('uview-pro/components/u-popup/u-popup.vue')['default']
     URate: typeof import('uview-pro/components/u-rate/u-rate.vue')['default']
+    UTextarea: typeof import('uview-pro/components/u-textarea/u-textarea.vue')['default']
   }
 }

@@ -3,7 +3,7 @@ import { ref } from 'vue';
 
 export const useUserStore = defineStore('user', () => {
   const token = ref<string>(uni.getStorageSync('token') || '');
-  const userInfo = ref<Record<string, unknown> | null>(uni.getStorageSync('userInfo') || null);
+  const userInfo = ref<any>(uni.getStorageSync('userInfo') || null);
 
   const setToken = (newToken: string) => {
     token.value = newToken;
