@@ -116,6 +116,11 @@ function handleAuthFail(userStore: any, reject: any) {
     icon: 'none',
   });
   userStore.logout();
-  // TODO: 跳转到登录页 uni.navigateTo({ url: '/pages/login/login' })
+  
+  // 清空等待队列
+  requestsQueue = [];
+  
+  // 跳转到登录页，使用 reLaunch 清空路由栈
+  uni.reLaunch({ url: '/pages/login/index' });
   reject(new Error('Unauthorized'));
 }
