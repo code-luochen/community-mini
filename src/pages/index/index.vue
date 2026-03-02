@@ -161,7 +161,14 @@ onLoad(() => {
   else greeting.value = '晚上好';
 });
 
-const handleNavigate = (url: string) => uni.navigateTo({ url });
+const handleNavigate = (url: string) => {
+  const tabPages = ['/pages/index/index', '/pages/health/index', '/pages/order/list', '/pages/profile/index'];
+  if (tabPages.includes(url.split('?')[0])) {
+    uni.switchTab({ url });
+  } else {
+    uni.navigateTo({ url });
+  }
+};
 const handleBooking = (service: any) => {
   uni.navigateTo({
     url: `/pages/service/reserve?id=${service.id}&name=${encodeURIComponent(service.name)}`

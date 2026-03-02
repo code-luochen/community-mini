@@ -18,7 +18,7 @@
           <text class="item-icon">{{ item.icon }}</text>
           <text class="item-label" :style="{ fontSize: settingsStore.fontSize + 'px' }">{{ item.label }}</text>
         </view>
-        <text class="arrow">></text>
+        <text class="arrow">&gt;</text>
       </view>
     </view>
 

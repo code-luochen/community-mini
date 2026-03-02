@@ -26,6 +26,20 @@ export interface QueryOrderParams {
   limit?: number;
 }
 
+export interface CreateOrderPayload {
+  elderlyId: string;
+  merchantId: string;
+  serviceId: string;
+  serviceSnapshot: {
+    name: string;
+    price: number;
+    description: string;
+  };
+  serviceTime: string;
+  address: string;
+  remark?: string;
+}
+
 /**
  * 获取订单列表（支持分页和状态过滤）
  */
@@ -47,7 +61,7 @@ export function getOrderList(params: QueryOrderParams) {
 export function confirmOrder(id: string) {
   return request<OrderModel>({
     url: `/api/order/${id}/status`,
-    method: 'PATCH',
+    method: 'PUT',
     data: {
       status: 3, // 3 为已完成
     }
@@ -60,11 +74,22 @@ export function confirmOrder(id: string) {
 export function evaluateOrder(id: string, evaluateStar: number, evaluateContent: string) {
   return request<OrderModel>({
     url: `/api/order/${id}/evaluate`,
-    method: 'PATCH',
+    method: 'PUT',
     data: {
       evaluation: evaluateStar,
       evaluationContent: evaluateContent
     }
+  });
+}
+
+/**
+ * 创建订单 (预约服务)
+ */
+export function createOrder(data: CreateOrderPayload) {
+  return request<OrderModel>({
+    url: '/api/order',
+    method: 'POST',
+    data
   });
 }
 

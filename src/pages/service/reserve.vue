@@ -2,10 +2,17 @@
   <view class="container" :style="{ '--base-font-size': settingsStore.fontSize + 'px' }">
     <view class="service-summary">
       <text class="service-name" :style="{ fontSize: (settingsStore.fontSize + 4) + 'px' }">{{ serviceName }}</text>
-      <text class="service-price">预估价格：¥{{ servicePrice }}</text>
+      <text class="service-price">预估价格：¥{{ Number(servicePrice).toFixed(2) }}</text>
     </view>
 
     <view class="form-section">
+      <view class="form-item">
+        <text class="label">预约日期</text>
+        <picker mode="date" @change="onDateChange">
+          <view class="picker-val">{{ reservedDate || '点击选择日期 >' }}</view>
+        </picker>
+      </view>
+
       <view class="form-item">
         <text class="label">预约时间</text>
         <picker mode="time" @change="onTimeChange">
@@ -29,7 +36,7 @@
     </view>
 
     <view class="bottom-bar">
-      <elderly-button class="submit-btn" @click="handleConfirm">
+      <elderly-button class="submit-btn" :loading="isSubmitting" @click="handleConfirm">
         确认预约
       </elderly-button>
     </view>
@@ -40,49 +47,126 @@
 import { ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useSettingsStore } from '@/stores/settings';
+import { getServiceDetail } from '@/api/service';
+import { createOrder } from '@/api/order';
 import ElderlyButton from '@/components/ElderlyButton.vue';
 
 const settingsStore = useSettingsStore();
 
-const serviceName = ref('助老服务');
+const serviceId = ref('');
+const serviceName = ref('');
 const servicePrice = ref(0);
-const reservedTime = ref('');
-const address = ref('幸福小区1号楼101室');
-const remark = ref('');
+const merchantId = ref('');
+const serviceDesc = ref('');
 
-onLoad((options: any) => {
-  if (options.name) serviceName.value = decodeURIComponent(options.name);
-  if (options.id) servicePrice.value = options.id == 1 ? 15 : options.id == 2 ? 8 : 30;
-});
+// 默认今天
+const today = new Date();
+const y = today.getFullYear();
+const m = String(today.getMonth() + 1).padStart(2, '0');
+const d = String(today.getDate()).padStart(2, '0');
+
+const reservedDate = ref(`${y}-${m}-${d}`);
+const reservedTime = ref('');
+const address = ref('幸福小区1号楼101室'); // 默认展示个地址，实际应从 profile 获取
+const remark = ref('');
+const isSubmitting = ref(false);
+
+const onDateChange = (e: any) => {
+  reservedDate.value = e.detail.value;
+};
 
 const onTimeChange = (e: any) => {
   reservedTime.value = e.detail.value;
 };
 
-const handleConfirm = () => {
-  if (!reservedTime.value) {
-    uni.showToast({ title: '请选择时间', icon: 'none' });
+onLoad(async (options: any) => {
+  if (options.id) {
+    serviceId.value = options.id;
+    // 获取详情以获取 merchantId
+    try {
+      const res = await getServiceDetail(options.id);
+      if (res.data) {
+        serviceName.value = res.data.name;
+        servicePrice.value = res.data.price;
+        merchantId.value = res.data.merchantId;
+        serviceDesc.value = res.data.description;
+      }
+    } catch (e: any) {
+      uni.showToast({ title: '加载服务详情失败', icon: 'none' });
+    }
+  }
+});
+
+const handleConfirm = async () => {
+  if (!reservedDate.value || !reservedTime.value) {
+    uni.showToast({ title: '请选择完整的预约时间', icon: 'none' });
     return;
   }
-  uni.showLoading({ title: '提交预约...' });
-  setTimeout(() => {
+  if (!address.value) {
+    uni.showToast({ title: '请输入服务地址', icon: 'none' });
+    return;
+  }
+
+  isSubmitting.value = true;
+  uni.showLoading({ title: '提交中...' });
+
+  const serviceTimeIso = new Date(`${reservedDate.value}T${reservedTime.value}:00+08:00`).toISOString();
+
+  // 获取当前用户ID作为 elderlyId。通常从小程序全局状态或 localStorage 拿，这里演示用
+  // TODO: 如果有 userStore 可以直接用 userStore.userInfo.id
+  let currentUserId = '1';
+  try {
+    const userInfoStr = uni.getStorageSync('userInfo');
+    if (userInfoStr) {
+      const userInfo = JSON.parse(userInfoStr);
+      currentUserId = String(userInfo.id);
+    }
+  } catch (e) {}
+
+  try {
+    await createOrder({
+      elderlyId: currentUserId,
+      merchantId: merchantId.value,
+      serviceId: serviceId.value,
+      serviceSnapshot: {
+        name: serviceName.value,
+        price: servicePrice.value,
+        description: serviceDesc.value
+      },
+      serviceTime: serviceTimeIso,
+      address: address.value,
+      remark: remark.value
+    });
+
     uni.hideLoading();
     uni.showModal({
       title: '预约成功',
-      content: '您的服务预约已成功提交，商家会在15分钟内确认单。',
+      content: '您的服务预约已成功提交，商家会在尽快确认。',
       showCancel: false,
       success: () => {
+        // 返回订单列表
         uni.switchTab({ url: '/pages/order/list' });
       }
     });
-  }, 1000);
+
+  } catch (err: any) {
+    uni.hideLoading();
+    uni.showToast({ title: err.message || '预约失败', icon: 'none' });
+  } finally {
+    isSubmitting.value = false;
+  }
 };
 </script>
 
 <style scoped lang="scss">
 @import "@/styles/variables.scss";
 
-.container { padding: 32rpx; background-color: #F8F9FA; min-height: 100vh; padding-bottom: 200rpx; }
+.container { 
+  padding: 32rpx; 
+  background-color: #F8F9FA; 
+  min-height: 100vh; 
+  padding-bottom: 200rpx; 
+}
 
 .service-summary {
   background: #FFF;
@@ -90,7 +174,7 @@ const handleConfirm = () => {
   border-radius: 20rpx;
   margin-bottom: 32rpx;
   .service-name { font-weight: bold; color: $text-color; display: block; margin-bottom: 12rpx; }
-  .service-price { color: $danger-color; font-weight: bold; }
+  .service-price { color: $danger-color; font-weight: bold; font-size: 34rpx; }
 }
 
 .form-section {
