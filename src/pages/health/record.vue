@@ -81,9 +81,12 @@
 <script setup lang="ts">
 import { reactive, computed } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
+import { useUserStore } from '@/stores/user';
 import ElderlyButton from '@/components/ElderlyButton.vue';
+import { createHealthRecord } from '@/api/health';
 
 const settingsStore = useSettingsStore();
+const userStore = useUserStore();
 
 const healthData = reactive({
   systolic_bp: '',
@@ -118,29 +121,43 @@ const bpWarning = computed(() => {
          checkBPStatus(healthData.diastolic_bp, 'diastolic') !== 'normal';
 });
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (!healthData.systolic_bp || !healthData.diastolic_bp || !healthData.heart_rate) {
     uni.showToast({ title: '请填写核心指标', icon: 'none' });
     return;
   }
 
-  // 模拟提交
   uni.showLoading({ title: '保存中...' });
-  setTimeout(() => {
-    uni.hideLoading();
+  
+  try {
+    await createHealthRecord({
+      elderlyId: userStore.userInfo?.id || '',
+      systolicBp: parseInt(healthData.systolic_bp) || undefined,
+      diastolicBp: parseInt(healthData.diastolic_bp) || undefined,
+      heartRate: parseInt(healthData.heart_rate) || undefined,
+      bloodSugar: parseFloat(healthData.blood_sugar) || undefined,
+      temperature: parseFloat(healthData.temperature) || undefined
+    });
     
+    uni.hideLoading();
     if (bpWarning.value) {
       uni.showModal({
         title: '健康提醒',
-        content: '您的血压数值偏离正常范围，系统已自动通知您的家属。请坐下休息，稍后再次测量。',
+        content: '您的健康数值偏离正常范围，系统已自动通知您的家属。请坐下休息，稍后再次测量。',
         showCancel: false,
-        confirmText: '我知道了'
+        confirmText: '我知道了',
+        success: () => {
+          uni.navigateBack();
+        }
       });
     } else {
       uni.showToast({ title: '保存成功', icon: 'success' });
       setTimeout(() => uni.navigateBack(), 1500);
     }
-  }, 1000);
+  } catch (error) {
+    uni.hideLoading();
+    // 错误在 request 拦截中已统一提示
+  }
 };
 </script>
 

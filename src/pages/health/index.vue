@@ -1,21 +1,21 @@
 <template>
   <view class="container" :style="{ '--base-font-size': settingsStore.fontSize + 'px' }">
     <!-- 1. 顶部大型健康卡片 (Hero Health Status) -->
-    <view class="health-hero-card">
+    <view class="health-hero-card" :class="{ 'hero-abnormal': isAbnormalStatus }">
        <view class="hero-bg-decor"></view>
        <view class="hero-content">
          <view class="status-indicator">
            <view class="inner-circle">
-             <text class="status-icon">🛡️</text>
+             <text class="status-icon">{{ isAbnormalStatus ? '⚠️' : '🛡️' }}</text>
            </view>
          </view>
          <view class="status-info">
-           <text class="status-title" :style="{ fontSize: (settingsStore.fontSize + 8) + 'px' }">健康状态良好</text>
-           <text class="status-desc">系统已为您全天候守护中</text>
+           <text class="status-title" :style="{ fontSize: (settingsStore.fontSize + 8) + 'px' }">{{ isAbnormalStatus ? '健康出现异常' : '健康状态良好' }}</text>
+           <text class="status-desc">{{ isAbnormalStatus ? '已通知家属，请注意休息' : '系统已为您全天候守护中' }}</text>
          </view>
        </view>
        <view class="update-info">
-         <text class="time">最后更新：今天 10:30</text>
+         <text class="time">最后更新：{{ updateTime }}</text>
          <text class="sync-tag">数据已同步</text>
        </view>
     </view>
@@ -48,10 +48,9 @@
       </view>
       <view class="chart-box">
         <view class="chart-area">
-          <!-- 模拟高保真图表 -->
-          <view class="bar-group" v-for="h in [65, 78, 62, 85, 70, 75, 68]" :key="h">
+          <view class="bar-group" v-for="(h, idx) in chartData" :key="idx">
              <view class="bar-top" :style="{ height: h + '%' }"></view>
-             <view class="bar-bottom" :style="{ height: (h - 20) + '%' }"></view>
+             <view class="bar-bottom" :style="{ height: Math.max(0, h - 20) + '%' }"></view>
           </view>
         </view>
         <view class="chart-xaxis">
@@ -63,26 +62,105 @@
     <!-- 4. 固定操作栏 -->
     <view class="action-footer">
       <elderly-button @click="handleRecord">录入今日数据</elderly-button>
+      <view class="history-link" @click="handleHistory">
+        <text>查看历史记录</text>
+      </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { useSettingsStore } from '@/stores/settings';
+import { useUserStore } from '@/stores/user';
 import ElderlyButton from '@/components/ElderlyButton.vue';
+import { getHealthRecords } from '@/api/health';
 
 const settingsStore = useSettingsStore();
+const userStore = useUserStore();
+
+const updateTime = ref('暂无数据');
+const isAbnormalStatus = ref(false);
+
+const chartData = ref([60, 60, 60, 60, 60, 60, 60]); // Default dummy levels
 
 const latestData = ref([
-  { label: '血压', value: '128/82', unit: 'mmHg', icon: '🩸', statusType: 'normal', statusText: '正常范围' },
-  { label: '心率', value: '72', unit: '次/分', icon: '💓', statusType: 'normal', statusText: '平稳' },
-  { label: '血糖', value: '5.6', unit: 'mmol/L', icon: '🍬', statusType: 'normal', statusText: '正常' },
-  { label: '体温', value: '36.5', unit: '℃', icon: '🌡️', statusType: 'normal', statusText: '正常' }
+  { label: '血压', value: '-/-', unit: 'mmHg', icon: '🩸', statusType: 'normal', statusText: '未知' },
+  { label: '心率', value: '-', unit: '次/分', icon: '💓', statusType: 'normal', statusText: '未知' },
+  { label: '血糖', value: '-', unit: 'mmol/L', icon: '🍬', statusType: 'normal', statusText: '未知' },
+  { label: '体温', value: '-', unit: '℃', icon: '🌡️', statusType: 'normal', statusText: '未知' }
 ]);
+
+const fetchHealthData = async () => {
+  try {
+    const res: any = await getHealthRecords({ elderlyId: userStore.userInfo?.id });
+    const records = res.data.items || res.items || res; // depending on backend pagination wrapper
+
+    if (records && records.length > 0) {
+      const latest = records[0];
+      
+      const recordDate = new Date(latest.record_time || latest.createdAt || Date.now());
+      updateTime.value = `${recordDate.getMonth()+1}月${recordDate.getDate()}日 ${recordDate.getHours()}:${recordDate.getMinutes().toString().padStart(2,'0')}`;
+      
+      isAbnormalStatus.value = latest.is_abnormal === 1;
+
+      latestData.value = [
+        { 
+          label: '血压', 
+          value: `${latest.systolicBp || '-'}/${latest.diastolicBp || '-'}`, 
+          unit: 'mmHg', 
+          icon: '🩸', 
+          statusType: (latest.systolicBp >= 140 || latest.diastolicBp >= 90 || latest.systolicBp < 90 || latest.diastolicBp < 60) ? 'warning' : 'normal', 
+          statusText: (latest.systolicBp >= 140 || latest.diastolicBp >= 90) ? '偏高' : ((latest.systolicBp < 90 || latest.diastolicBp < 60) ? '偏低' : '正常')
+        },
+        { 
+          label: '心率', 
+          value: latest.heartRate || '-', 
+          unit: '次/分', icon: '💓', 
+          statusType: (latest.heartRate > 100 || latest.heartRate < 60) ? 'warning' : 'normal', 
+          statusText: (latest.heartRate > 100) ? '偏高' : (latest.heartRate < 60 ? '偏低' : '平稳')
+        },
+        { 
+          label: '血糖', 
+          value: latest.bloodSugar || '-', 
+          unit: 'mmol/L', icon: '🍬', 
+          statusType: (latest.bloodSugar > 7.0 || latest.bloodSugar < 3.9) ? 'warning' : 'normal', 
+          statusText: latest.bloodSugar > 7.0 ? '偏高' : (latest.bloodSugar < 3.9 ? '偏低' : '正常')
+        },
+        { 
+          label: '体温', 
+          value: latest.temperature || '-', 
+          unit: '℃', icon: '🌡️', 
+          statusType: latest.temperature > 37.3 ? 'warning' : 'normal', 
+          statusText: latest.temperature > 37.3 ? '异常' : '正常' 
+        }
+      ];
+
+      const last7 = [...records].slice(0, 7).reverse();
+      chartData.value = [60,60,60,60,60,60,60]; // reset with base
+      last7.forEach((r: any, idx: number) => {
+        if (r.systolicBp) {
+           // map 90~160 to 20~90 %
+           chartData.value[idx] = Math.min(100, Math.max(20, ((r.systolicBp - 70) / 90) * 100));
+        }
+      });
+    }
+  } catch (err) {
+    console.error('Failed to load records', err);
+  }
+};
+
+onShow(() => {
+  fetchHealthData();
+});
 
 const handleRecord = () => {
   uni.navigateTo({ url: '/pages/health/record' });
+};
+
+const handleHistory = () => {
+  uni.navigateTo({ url: '/pages/health/history' });
 };
 </script>
 
@@ -156,6 +234,11 @@ const handleRecord = () => {
     padding-top: 24rpx;
     .sync-tag { font-weight: bold; }
   }
+}
+
+.health-hero-card.hero-abnormal {
+  background: linear-gradient(135deg, #FF6B6B 0%, #EE5253 100%);
+  box-shadow: 0 12rpx 32rpx rgba(238, 82, 83, 0.2);
 }
 
 // 2. 指标卡片
@@ -268,5 +351,14 @@ const handleRecord = () => {
   background: rgba(255,255,255,0.9);
   backdrop-filter: blur(10rpx);
   box-shadow: 0 -8rpx 24rpx rgba(0,0,0,0.04);
+  
+  .history-link {
+    text-align: center;
+    padding: 20rpx 0;
+    margin-top: 10rpx;
+    font-size: 28rpx;
+    color: $primary-color;
+    font-weight: bold;
+  }
 }
 </style>

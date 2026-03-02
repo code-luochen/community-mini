@@ -54,6 +54,12 @@
       "style": {
         "navigationBarTitleText": "系统设置"
       }
+    },
+    {
+      "path": "pages/health/history",
+      "style": {
+        "navigationBarTitleText": "历史记录"
+      }
     }
   ],
   "tabBar": {
