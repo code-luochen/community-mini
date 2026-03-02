@@ -60,6 +60,12 @@
       "style": {
         "navigationBarTitleText": "历史记录"
       }
+    },
+    {
+      "path": "pages/notification/index",
+      "style": {
+        "navigationBarTitleText": "消息通知"
+      }
     }
   ],
   "tabBar": {

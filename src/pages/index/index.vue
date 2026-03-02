@@ -19,6 +19,10 @@
               愿您今天平安健康，心情舒畅
             </text>
           </view>
+          <view class="bell-box" @click="handleNavigate('/pages/notification/index')">
+            <u-icon name="bell" color="#FFFFFF" size="44"></u-icon>
+            <view v-if="unreadCount > 0" class="badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</view>
+          </view>
         </view>
         
         <view class="weather-pill">
@@ -110,10 +114,11 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { onLoad } from '@dcloudio/uni-app';
+import { onLoad, onShow } from '@dcloudio/uni-app';
 import { useSettingsStore } from '@/stores/settings';
 import { useUserStore } from '@/stores/user';
 import { createEmergency } from '@/api/emergency';
+import { getUnreadCount } from '@/api/notification';
 
 const settingsStore = useSettingsStore();
 const userStore = useUserStore();
@@ -160,6 +165,21 @@ onLoad(() => {
   else if (hour < 13) greeting.value = '中午好';
   else if (hour < 18) greeting.value = '下午好';
   else greeting.value = '晚上好';
+});
+
+const unreadCount = ref(0);
+const fetchUnreadCount = async () => {
+  if (!userStore.token) return;
+  try {
+    const res: any = await getUnreadCount();
+    unreadCount.value = res.data || 0;
+  } catch (err) {
+    // ignore
+  }
+};
+
+onShow(() => {
+  fetchUnreadCount();
 });
 
 const handleNavigate = (url: string) => {
@@ -261,6 +281,34 @@ const handleSOS = () => {
       flex: 1;
       .title { font-weight: 800; display: block; margin-bottom: 8rpx; }
       .subtitle { color: rgba(255,255,255,0.85); display: block; }
+    }
+    
+    .bell-box {
+      position: relative;
+      width: 80rpx;
+      height: 80rpx;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.2);
+      border-radius: 50%;
+      margin-left: 12rpx;
+      
+      &:active {
+        opacity: 0.8;
+      }
+      
+      .badge {
+        position: absolute;
+        top: -4rpx;
+        right: -8rpx;
+        background: $danger-color;
+        color: #FFFFFF;
+        font-size: 20rpx;
+        font-weight: bold;
+        padding: 4rpx 10rpx;
+        border-radius: 20rpx;
+      }
     }
   }
 
