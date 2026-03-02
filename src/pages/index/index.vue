@@ -113,6 +113,7 @@ import { ref, computed } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useSettingsStore } from '@/stores/settings';
 import { useUserStore } from '@/stores/user';
+import { createEmergency } from '@/api/emergency';
 
 const settingsStore = useSettingsStore();
 const userStore = useUserStore();
@@ -183,11 +184,33 @@ const handleSOS = () => {
     confirmColor: '#E11D48',
     success: (res) => {
       if (res.confirm) {
-        uni.showLoading({ title: '呼叫中...' });
-        setTimeout(() => {
-          uni.hideLoading();
-          uni.showToast({ title: '信号已发出，请保持电话通畅', icon: 'success' });
-        }, 1500);
+        uni.showLoading({ title: '定位中...' });
+        uni.getLocation({
+          type: 'gcj02',
+          success: async (locationRes) => {
+            const locationStr = `纬度: ${locationRes.latitude}, 经度: ${locationRes.longitude}`;
+            try {
+              uni.showLoading({ title: '呼叫中...' });
+              await createEmergency({ location: locationStr, remark: '页面一键紧急求助' });
+              uni.hideLoading();
+              uni.showToast({ title: '信号已发出，请保持电话通畅', icon: 'success', duration: 3000 });
+            } catch (err: any) {
+              uni.hideLoading();
+              uni.showToast({ title: err.message || '发送失败，请直接拨打急救电话', icon: 'none', duration: 3000 });
+            }
+          },
+          fail: async () => {
+            try {
+              uni.showLoading({ title: '呼叫中...' });
+              await createEmergency({ location: '定位失败/未授权', remark: '页面一键紧急求助(无坐标)' });
+              uni.hideLoading();
+              uni.showToast({ title: '信号发出，位置暂缺，请等待电话', icon: 'success', duration: 3000 });
+            } catch (err: any) {
+              uni.hideLoading();
+              uni.showToast({ title: err.message || '发送失败，请直接拨打紧急电话', icon: 'none', duration: 3000 });
+            }
+          }
+        });
       }
     }
   });
