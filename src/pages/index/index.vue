@@ -9,27 +9,27 @@
       <view class="hero-content" :style="{ minHeight: (navBarHeight + 120) + 'px' }">
         <view class="user-greeting">
           <view class="avatar-box">
-             <image class="avatar" src="https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png" mode="aspectFill" />
+             <image class="avatar" :src="userInfo?.avatar || 'https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png'" mode="aspectFill" />
           </view>
           <view class="greeting-text">
-            <text class="title" :style="{ fontSize: (settingsStore.fontSize + 6) + 'px' }">
+            <text class="title" :style="{ fontSize: (settingsStore.fontSize + 6) + 'px' }" @longpress="speak(`你好，${userInfo?.nickname || userInfo?.username}`)">
               {{ userInfo?.nickname || userInfo?.username }}，{{ greeting }}
             </text>
             <text class="subtitle" :style="{ fontSize: settingsStore.fontSize + 'px' }">
               愿您今天平安健康，心情舒畅
             </text>
           </view>
-          <view class="bell-box" @click="handleNavigate('/pages/notification/index')">
+          <view class="bell-box" @click="handleNavigate('/pages/notification/index')" @longpress="speak('消息通知')">
             <u-icon name="bell" color="#FFFFFF" size="44"></u-icon>
             <view v-if="unreadCount > 0" class="badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</view>
           </view>
         </view>
         
-        <view class="weather-pill">
-          <text class="icon">🌤️</text>
+        <view class="weather-pill" @longpress="speak(`当前天气${weather.temp}度，${weather.desc}`)">
+          <text class="icon">{{ weather.icon }}</text>
           <view class="info">
-            <text class="temp" :style="{ fontSize: settingsStore.fontSize + 'px' }">22°C</text>
-            <text class="city">多云 · 适宜活动</text>
+            <text class="temp" :style="{ fontSize: settingsStore.fontSize + 'px' }">{{ weather.temp }}°C</text>
+            <text class="city">{{ weather.desc }} · 适宜活动</text>
           </view>
         </view>
       </view>
@@ -43,6 +43,7 @@
           v-for="item in gridItems" 
           :key="item.path" 
           @click="handleNavigate(item.path)"
+          @longpress="speak(item.label)"
           class-active="item-active"
         >
           <view class="icon-wrap" :style="{ backgroundColor: item.color }">
@@ -54,22 +55,30 @@
 
       <!-- 3. 健康概览小卡片 (Quick Health Summary) -->
       <view class="section-container">
-        <view class="health-summary-card" @click="handleNavigate('/pages/health/index')">
+        <view class="health-summary-card" @click="handleNavigate('/pages/health/index')" @longpress="speak('健康守护，点击查看详细记录')">
           <view class="card-header">
              <text class="card-title">💓 健康守护</text>
-             <text class="time">最后记录：今天 10:30</text>
+             <text class="time">最后记录：{{ latestHealth?.recordTime ? formatTime(latestHealth.recordTime) : '暂无记录' }}</text>
           </view>
           <view class="card-body">
             <view class="indicator">
-              <text class="val">128/82</text>
+              <text class="val" :class="{ 'abnormal': isBloodPressureAbnormal }">
+                {{ latestHealth?.systolicBp ? `${latestHealth.systolicBp}/${latestHealth.diastolicBp}` : '--' }}
+              </text>
               <text class="unit">血压</text>
             </view>
             <view class="divider"></view>
             <view class="indicator">
-              <text class="val">72</text>
+              <text class="val" :class="{ 'abnormal': isHeartRateAbnormal }">
+                {{ latestHealth?.heartRate || '--' }}
+              </text>
               <text class="unit">心率</text>
             </view>
-            <u-button type="primary" size="mini" shape="circle" :plain="true" class="record-btn">去记录</u-button>
+            <u-button type="primary" size="mini" shape="circle" :plain="true" class="record-btn" @click.stop="handleNavigate('/pages/health/record')">去记录</u-button>
+          </view>
+          <view v-if="latestHealth?.isAbnormal" class="abnormal-notice">
+            <u-icon name="warning-fill" color="#E11D48" size="32"></u-icon>
+            <text class="notice-text">检测到数据异常，建议联系家属或预约医护服务</text>
           </view>
         </view>
       </view>
@@ -77,32 +86,42 @@
       <!-- 4. 服务推荐区 (Service Recommendations) -->
       <view class="section-container">
         <view class="section-header">
-          <text class="section-title">✨ 为您甄选</text>
+          <view class="title-with-tag">
+            <text class="section-title">✨ {{ recommendationTitle }}</text>
+            <view v-if="hasHealthRisk" class="risk-tag">为您推荐</view>
+          </view>
           <text class="more" @click="handleNavigate('/pages/service/list')">查看全部</text>
         </view>
-        <view class="service-scroll">
-          <view 
-            class="service-item" 
-            v-for="service in recommendations" 
-            :key="service.id"
-            @click="handleBooking(service)"
-          >
-            <image class="service-img" :src="service.img" mode="aspectFill" />
-            <view class="service-info">
-              <text class="name" :style="{ fontSize: settingsStore.fontSize + 'px' }">{{ service.name }}</text>
-              <view class="price-row">
-                <text class="price">¥{{ service.price }}</text>
-                <text class="unit">/次</text>
+        
+        <scroll-view scroll-x class="service-scroll">
+          <view class="scroll-content">
+            <view 
+              class="service-item" 
+              v-for="service in recommendations" 
+              :key="service.id"
+              @click="handleBooking(service)"
+              @longpress="speak(service.name)"
+            >
+              <image class="service-img" :src="service.imageUrl || 'https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png'" mode="aspectFill" />
+              <view class="service-info">
+                <text class="name" :style="{ fontSize: settingsStore.fontSize + 'px' }">{{ service.name }}</text>
+                <view class="price-row">
+                  <text class="price">¥{{ service.price }}</text>
+                  <text class="unit">/次</text>
+                </view>
               </view>
             </view>
+            <view v-if="recommendations.length === 0" class="empty-service">
+               <text>更多优质服务筹备中...</text>
+            </view>
           </view>
-        </view>
+        </scroll-view>
       </view>
     </view>
 
-    <!-- 5. 紧急求救 (SOS Floating Action Button) -->
+    <!-- 5. 紧急求助 (SOS Floating Action Button) -->
     <view class="sos-wrapper">
-      <view class="sos-btn-outer" @click="handleSOS">
+      <view class="sos-btn-outer" @click="handleSOS" @longpress="speak('紧急求助确认，点击后将联系家属和管理员')">
         <view class="sos-btn-inner">
            <text class="sos-icon">🆘</text>
            <text class="sos-label">紧急求助</text>
@@ -119,6 +138,8 @@ import { useSettingsStore } from '@/stores/settings';
 import { useUserStore } from '@/stores/user';
 import { createEmergency } from '@/api/emergency';
 import { getUnreadCount } from '@/api/notification';
+import { getHealthRecords } from '@/api/health';
+import { getServiceList, type ServiceModel } from '@/api/service';
 
 const settingsStore = useSettingsStore();
 const userStore = useUserStore();
@@ -130,18 +151,34 @@ const navBarHeight = ref(44);
 
 // 业务状态
 const greeting = ref('下午好');
+const weather = ref({ temp: 22, desc: '多云', icon: '🌤️' });
+
 const gridItems = [
-  { label: '服务预约', icon: 'order', iconColor: '#0891B2', color: '#E0F2FE', path: '/pages/service/list' },
-  { label: '健康记录', icon: 'heart', iconColor: '#22C55E', color: '#F0FDF4', path: '/pages/health/record' },
-  { label: '订单管理', icon: 'bag', iconColor: '#F59E0B', color: '#FFFBEB', path: '/pages/order/list' },
-  { label: '我的家属', icon: 'man-add', iconColor: '#8B5CF6', color: '#F5F3FF', path: '/pages/profile/index' }
+  { label: '服务预约', icon: 'grid', iconColor: '#0891B2', color: '#E0F2FE', path: '/pages/service/list' },
+  { label: '健康指标', icon: 'heart-fill', iconColor: '#22C55E', color: '#F0FDF4', path: '/pages/health/index' },
+  { label: '服务订单', icon: 'order', iconColor: '#F59E0B', color: '#FFFBEB', path: '/pages/order/list' },
+  { label: '个人中心', icon: 'account', iconColor: '#8B5CF6', color: '#F5F3FF', path: '/pages/profile/index' }
 ];
 
-const recommendations = ref([
-  { id: 1, name: '营养午餐送餐', price: 15, img: 'https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png' },
-  { id: 2, name: '专业康复理疗', price: 120, img: 'https://img.js.design/assets/illustration/63f46f4a21578205691e/preview.png' },
-  { id: 3, name: '暖心陪诊服务', price: 80, img: 'https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png' }
-]);
+const latestHealth = ref<any>(null);
+const recommendations = ref<ServiceModel[]>([]);
+const unreadCount = ref(0);
+
+// 计算属性
+const isBloodPressureAbnormal = computed(() => {
+  if (!latestHealth.value) return false;
+  const { systolicBp, diastolicBp } = latestHealth.value;
+  return systolicBp > 140 || systolicBp < 90 || diastolicBp > 90 || diastolicBp < 60;
+});
+
+const isHeartRateAbnormal = computed(() => {
+  if (!latestHealth.value) return false;
+  const { heartRate } = latestHealth.value;
+  return heartRate > 100 || heartRate < 60;
+});
+
+const hasHealthRisk = computed(() => latestHealth.value?.isAbnormal === 1);
+const recommendationTitle = computed(() => hasHealthRisk.value ? '健康帮扶' : '为您甄选');
 
 onLoad(() => {
   // 1. 登录校验
@@ -158,29 +195,86 @@ onLoad(() => {
   navBarHeight.value = (menuButton.top - statusBarHeight.value) * 2 + menuButton.height;
   // #endif
 
-  // 3. 动态问候
+  // 3. 动态问候与天气模拟
+  updateGreetingAndWeather();
+});
+
+onShow(() => {
+  fetchAllData();
+});
+
+const updateGreetingAndWeather = () => {
   const hour = new Date().getHours();
   if (hour < 6) greeting.value = '凌晨好';
   else if (hour < 11) greeting.value = '上午好';
   else if (hour < 13) greeting.value = '中午好';
   else if (hour < 18) greeting.value = '下午好';
   else greeting.value = '晚上好';
-});
 
-const unreadCount = ref(0);
-const fetchUnreadCount = async () => {
+  // 模拟天气变化
+  const weathers = [
+    { temp: 22, desc: '多云', icon: '🌤️' },
+    { temp: 25, desc: '晴天', icon: '☀️' },
+    { temp: 18, desc: '阵雨', icon: '🌦️' },
+    { temp: 20, desc: '阴天', icon: '☁️' }
+  ];
+  weather.value = weathers[Math.floor(Math.random() * weathers.length)];
+};
+
+const fetchAllData = async () => {
   if (!userStore.token) return;
+  
   try {
-    const res: any = await getUnreadCount();
-    unreadCount.value = res.data || 0;
+    // 并行获取数据
+    const [healthRes, unreadRes] = await Promise.all([
+      getHealthRecords({ limit: 1, elderlyId: userInfo.value?.id }),
+      getUnreadCount()
+    ]);
+
+    latestHealth.value = (healthRes as any).data?.items?.[0] || null;
+    unreadCount.value = (unreadRes as any).data || 0;
+
+    // 根据健康状况获取推荐服务
+    fetchRecommendations();
   } catch (err) {
-    // ignore
+    console.error('Fetch home data failed:', err);
   }
 };
 
-onShow(() => {
-  fetchUnreadCount();
-});
+const fetchRecommendations = async () => {
+  try {
+    const params: any = { limit: 5 };
+    
+    // 联动逻辑：如果健康异常，尤其是血压异常，优先推荐医护服务 (type 3) 或 药品服务 (type 2)
+    if (hasHealthRisk.value) {
+      params.type = 3; // 医护服务
+    }
+
+    const res: any = await getServiceList(params);
+    recommendations.value = res.data?.items || [];
+
+    // 如果指定类型的服务太少，补充一些普通服务
+    if (recommendations.value.length < 2 && hasHealthRisk.value) {
+       const extraRes: any = await getServiceList({ limit: 5 });
+       const extraItems = extraRes.data?.items || [];
+       recommendations.value = [...new Set([...recommendations.value, ...extraItems])].slice(0, 5);
+    }
+  } catch (err) {
+    console.error('Fetch recommendations failed:', err);
+  }
+};
+
+const formatTime = (timeStr: string) => {
+  if (!timeStr) return '';
+  const date = new Date(timeStr);
+  const now = new Date();
+  
+  const isToday = date.toDateString() === now.toDateString();
+  if (isToday) {
+    return `今天 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+  }
+  return `${date.getMonth() + 1}月${date.getDate()}日`;
+};
 
 const handleNavigate = (url: string) => {
   const tabPages = ['/pages/index/index', '/pages/health/index', '/pages/order/list', '/pages/profile/index'];
@@ -190,10 +284,25 @@ const handleNavigate = (url: string) => {
     uni.navigateTo({ url });
   }
 };
+
 const handleBooking = (service: any) => {
   uni.navigateTo({
     url: `/pages/service/reserve?id=${service.id}&name=${encodeURIComponent(service.name)}`
   });
+};
+
+const speak = (content: string) => {
+  // 适老化：模拟语音播报
+  // 生产环境可接入 uni-voice 或 微信小程序语音插件
+  uni.showToast({
+    title: `播报: ${content}`,
+    icon: 'none',
+    duration: 2000
+  });
+  
+  // #ifdef MP-WEIXIN
+  // 如果有语音插件支持，可以在这里调用
+  // #endif
 };
 
 const handleSOS = () => {
@@ -211,7 +320,7 @@ const handleSOS = () => {
             const locationStr = `纬度: ${locationRes.latitude}, 经度: ${locationRes.longitude}`;
             try {
               uni.showLoading({ title: '呼叫中...' });
-              await createEmergency({ location: locationStr, remark: '页面一键紧急求助' });
+              await createEmergency({ location: locationStr, remark: '首页一键紧急求助' });
               uni.hideLoading();
               uni.showToast({ title: '信号已发出，请保持电话通畅', icon: 'success', duration: 3000 });
             } catch (err: any) {
@@ -222,7 +331,7 @@ const handleSOS = () => {
           fail: async () => {
             try {
               uni.showLoading({ title: '呼叫中...' });
-              await createEmergency({ location: '定位失败/未授权', remark: '页面一键紧急求助(无坐标)' });
+              await createEmergency({ location: '定位失败/未授权', remark: '首页一键紧急求助(无坐标)' });
               uni.hideLoading();
               uni.showToast({ title: '信号发出，位置暂缺，请等待电话', icon: 'success', duration: 3000 });
             } catch (err: any) {
@@ -396,12 +505,29 @@ const handleSOS = () => {
     
     .indicator {
       text-align: center;
-      .val { font-size: 44rpx; font-weight: 800; color: $primary-color; display: block; }
+      .val { 
+        font-size: 44rpx; 
+        font-weight: 800; 
+        color: $primary-color; 
+        display: block; 
+        &.abnormal { color: $danger-color; }
+      }
       .unit { font-size: 24rpx; color: $text-color-light; }
     }
     
     .divider { width: 2rpx; height: 60rpx; background: #EEE; }
     .record-btn { margin: 0; }
+  }
+
+  .abnormal-notice {
+    margin-top: 24rpx;
+    padding: 16rpx;
+    background: #FFF1F2;
+    border-radius: 16rpx;
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+    .notice-text { color: $danger-color; font-size: 24rpx; font-weight: bold; }
   }
 }
 
@@ -416,16 +542,34 @@ const handleSOS = () => {
   align-items: center;
   margin-bottom: 20rpx;
   padding: 0 8rpx;
+  
+  .title-with-tag {
+    display: flex;
+    align-items: center;
+    gap: 12rpx;
+  }
+  
   .section-title { font-size: 36rpx; font-weight: bold; color: $text-color; }
+  .risk-tag {
+    background: $danger-color;
+    color: #FFFFFF;
+    font-size: 20rpx;
+    padding: 2rpx 12rpx;
+    border-radius: 8rpx;
+    font-weight: bold;
+  }
   .more { font-size: 28rpx; color: $primary-color; }
 }
 
 .service-scroll {
-  display: flex;
-  gap: 24rpx;
-  overflow-x: auto;
-  padding: 4rpx;
-  &::-webkit-scrollbar { display: none; }
+  width: 100%;
+  white-space: nowrap;
+  
+  .scroll-content {
+    display: inline-flex;
+    padding: 8rpx 4rpx;
+    gap: 24rpx;
+  }
   
   .service-item {
     flex-shrink: 0;
@@ -439,12 +583,33 @@ const handleSOS = () => {
     
     .service-info {
       padding: 20rpx;
-      .name { font-weight: bold; color: $text-color; margin-bottom: 12rpx; display: block; }
+      .name { 
+        font-weight: bold; 
+        color: $text-color; 
+        margin-bottom: 12rpx; 
+        display: block; 
+        white-space: normal;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+      }
       .price-row {
         .price { color: $danger-color; font-size: 36rpx; font-weight: bold; }
         .unit { color: $text-color-light; font-size: 24rpx; margin-left: 4rpx; }
       }
     }
+  }
+
+  .empty-service {
+    width: 300rpx;
+    height: 300rpx;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $text-color-muted;
+    font-size: 24rpx;
   }
 }
 
