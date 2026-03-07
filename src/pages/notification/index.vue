@@ -72,7 +72,9 @@ const fetchList = async (isRefresh = false) => {
   loadStatus.value = 'loading';
   try {
     const res: any = await getNotifications({ page: page.value, limit: limit.value });
-    const items = res.data?.items || [];
+    const items = res.data?.data || [];
+
+    console.log("res==>", res)
     
     if (isRefresh) {
       notifications.value = items;

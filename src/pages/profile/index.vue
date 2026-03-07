@@ -38,7 +38,7 @@ const settingsStore = useSettingsStore();
 const userStore = useUserStore();
 
 const menuItems = [
-  { label: '基础资料', icon: '👤', path: '' },
+  { label: '基础资料', icon: '👤', path: '/pages/profile/basic-info' },
   { label: '我的家属', icon: '👨‍👩‍👧', path: '' },
   { label: '服务评价', icon: '⭐', path: '' },
   { label: '系统设置', icon: '⚙️', path: '/pages/profile/setting' }

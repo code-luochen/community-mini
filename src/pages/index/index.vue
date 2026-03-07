@@ -35,6 +35,18 @@
       </view>
     </view>
 
+    <!-- 1.5 完善资料提醒 (Profile Completion Reminder) -->
+    <view v-if="isProfileIncomplete" class="profile-notice" @click="handleNavigate('/pages/profile/basic-info')">
+      <view class="notice-left">
+        <text class="notice-icon">🛡️</text>
+        <view class="notice-text">
+          <text class="notice-title">请完善紧急联系人信息</text>
+          <text class="notice-desc">完善后即可开启24小时一键求助保障</text>
+        </view>
+      </view>
+      <view class="notice-btn">去完善</view>
+    </view>
+
     <!-- 2. 功能金刚区 (Floated Category Grid) -->
     <view class="main-content">
       <view class="grid-card">
@@ -140,6 +152,7 @@ import { createEmergency } from '@/api/emergency';
 import { getUnreadCount } from '@/api/notification';
 import { getHealthRecords } from '@/api/health';
 import { getServiceList, type ServiceModel } from '@/api/service';
+import { getMyProfile } from '@/api/profile';
 
 const settingsStore = useSettingsStore();
 const userStore = useUserStore();
@@ -163,6 +176,7 @@ const gridItems = [
 const latestHealth = ref<any>(null);
 const recommendations = ref<ServiceModel[]>([]);
 const unreadCount = ref(0);
+const isProfileIncomplete = ref(false);
 
 // 计算属性
 const isBloodPressureAbnormal = computed(() => {
@@ -226,13 +240,20 @@ const fetchAllData = async () => {
   
   try {
     // 并行获取数据
-    const [healthRes, unreadRes] = await Promise.all([
+    const [healthRes, unreadRes, profileRes] = await Promise.all([
       getHealthRecords({ limit: 1, elderlyId: userInfo.value?.id }),
-      getUnreadCount()
+      getUnreadCount(),
+      getMyProfile().catch(err => {
+        console.log('Profile not found, which is expected for new users');
+        return { data: null };
+      })
     ]);
 
     latestHealth.value = (healthRes as any).data?.items?.[0] || null;
     unreadCount.value = (unreadRes as any).data || 0;
+    
+    const profile = (profileRes as any).data;
+    isProfileIncomplete.value = !profile || !profile.emergencyContact || !profile.emergencyPhone;
 
     // 根据健康状况获取推荐服务
     fetchRecommendations();
@@ -593,6 +614,7 @@ const handleSOS = () => {
         text-overflow: ellipsis;
         display: -webkit-box;
         -webkit-line-clamp: 1;
+        line-clamp: 1;
         -webkit-box-orient: vertical;
       }
       .price-row {
@@ -652,6 +674,49 @@ const handleSOS = () => {
       .sos-icon { font-size: 56rpx; }
       .sos-label { color: #FFFFFF; font-size: 40rpx; font-weight: 900; letter-spacing: 4rpx; }
     }
+  }
+}
+
+.profile-notice {
+  margin: -40rpx 32rpx 32rpx;
+  background: #FFFFFF;
+  border-radius: 32rpx;
+  padding: 24rpx 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 8rpx 24rpx rgba(0,0,0,0.08);
+  position: relative;
+  z-index: 10;
+  border-left: 10rpx solid $danger-color;
+
+  .notice-left {
+    display: flex;
+    align-items: center;
+    gap: 20rpx;
+    
+    .notice-icon { font-size: 48rpx; }
+    .notice-text {
+      .notice-title { 
+        font-size: 30rpx; 
+        font-weight: bold; 
+        color: #1E293B; 
+        display: block;
+      }
+      .notice-desc { 
+        font-size: 24rpx; 
+        color: #64748B; 
+      }
+    }
+  }
+
+  .notice-btn {
+    background: $danger-color;
+    color: #FFFFFF;
+    font-size: 24rpx;
+    font-weight: bold;
+    padding: 12rpx 24rpx;
+    border-radius: 20rpx;
   }
 }
 </style>
