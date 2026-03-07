@@ -37,27 +37,7 @@
       </view>
     </view>
 
-    <!-- 3. 趋势图分析 (Trend Analysis) -->
-    <view class="trend-card">
-      <view class="card-header">
-        <text class="title">📈 血压趋势 (近7天)</text>
-        <view class="legend">
-          <view class="dot high"></view><text>收缩压</text>
-          <view class="dot low"></view><text>舒张压</text>
-        </view>
-      </view>
-      <view class="chart-box">
-        <view class="chart-area">
-          <view class="bar-group" v-for="(h, idx) in chartData" :key="idx">
-             <view class="bar-top" :style="{ height: h + '%' }"></view>
-             <view class="bar-bottom" :style="{ height: Math.max(0, h - 20) + '%' }"></view>
-          </view>
-        </view>
-        <view class="chart-xaxis">
-          <text v-for="d in ['一','二','三','四','五','六','日']" :key="d">{{ d }}</text>
-        </view>
-      </view>
-    </view>
+
 
     <!-- 4. 固定操作栏 -->
     <view class="action-footer">
@@ -70,7 +50,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { useSettingsStore } from '@/stores/settings';
 import { useUserStore } from '@/stores/user';
@@ -83,7 +63,7 @@ const userStore = useUserStore();
 const updateTime = ref('暂无数据');
 const isAbnormalStatus = ref(false);
 
-const chartData = ref([60, 60, 60, 60, 60, 60, 60]); // Default dummy levels
+
 
 const latestData = ref([
   { label: '血压', value: '-/-', unit: 'mmHg', icon: '🩸', statusType: 'normal', statusText: '未知' },
@@ -138,14 +118,7 @@ const fetchHealthData = async () => {
         }
       ];
 
-      const last7 = [...records].slice(0, 7).reverse();
-      chartData.value = [60,60,60,60,60,60,60]; // reset with base
-      last7.forEach((r: any, idx: number) => {
-        if (r.systolicBp) {
-           // map 90~160 to 20~90 %
-           chartData.value[idx] = Math.min(100, Math.max(20, ((r.systolicBp - 70) / 90) * 100));
-        }
-      });
+
     }
   } catch (err) {
     console.error('Failed to load records', err);
@@ -284,65 +257,7 @@ const handleHistory = () => {
   }
 }
 
-// 3. 趋势卡片
-.trend-card {
-  background: #FFFFFF;
-  border-radius: 48rpx;
-  padding: 40rpx;
-  box-shadow: $card-shadow;
 
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 48rpx;
-    .title { font-weight: bold; font-size: 32rpx; color: $text-color; }
-    .legend {
-      display: flex;
-      align-items: center;
-      gap: 10rpx;
-      font-size: 22rpx;
-      color: $text-color-light;
-      .dot { width: 16rpx; height: 16rpx; border-radius: 8rpx; }
-      .high { background: $primary-color; }
-      .low { background: $secondary-color; }
-    }
-  }
-
-  .chart-box {
-    .chart-area {
-      height: 240rpx;
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-around;
-      padding-bottom: 16rpx;
-      border-bottom: 2rpx solid #F1F5F9;
-      
-      .bar-group {
-        width: 32rpx;
-        position: relative;
-        .bar-top {
-          width: 100%;
-          background: linear-gradient(180deg, $primary-color 0%, $primary-light 100%);
-          border-radius: 12rpx 12rpx 0 0;
-          position: absolute; bottom: 0; left: 0; z-index: 2;
-        }
-        .bar-bottom {
-          width: 100%;
-          background: rgba(34, 211, 238, 0.3);
-          border-radius: 6rpx 6rpx 0 0;
-          position: absolute; bottom: 0; left: 0; z-index: 1;
-        }
-      }
-    }
-    .chart-xaxis {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 20rpx;
-      text { font-size: 24rpx; color: $text-color-muted; font-weight: bold; }
-    }
-  }
-}
 
 // 4. 操作栏
 .action-footer {
