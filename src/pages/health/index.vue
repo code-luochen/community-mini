@@ -95,7 +95,8 @@ const latestData = ref([
 const fetchHealthData = async () => {
   try {
     const res: any = await getHealthRecords({ elderlyId: userStore.userInfo?.id });
-    const records = res.data.items || res.items || res; // depending on backend pagination wrapper
+    const resData = res.data || res;
+    const records = resData.items || (Array.isArray(resData) ? resData : []);
 
     if (records && records.length > 0) {
       const latest = records[0];

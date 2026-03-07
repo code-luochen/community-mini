@@ -76,8 +76,10 @@ const fetchRecords = async (isLoadMore = false) => {
       limit
     });
     
-    // 假设后端返回格式为 { data: [], total: 100 } 或 { items: [], total: 100 }，或直接返回数据数组
-    const data = res.data || res.items || (Array.isArray(res) ? res : []);
+    // 解析后端返回的数据树。
+    // NestJS 统一拦截器返回 { code: 200, data: { items: [], total: ... } }
+    const resData = res.data || res;
+    const data = resData.items || (Array.isArray(resData) ? resData : []);
     
     if (isLoadMore) {
       records.value = [...records.value, ...data];

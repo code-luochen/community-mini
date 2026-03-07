@@ -41,11 +41,18 @@
           <input 
             class="input" 
             v-model="loginForm.password" 
-            type="password" 
+            :type="showPassword ? 'text' : 'password'" 
+            :password="!showPassword"
             placeholder="请输入六位以上密码" 
             placeholder-class="placeholder"
             :style="{ fontSize: `${settingsStore.fontSize}px` }"
           />
+          <u-icon 
+            :name="showPassword ? 'eye-fill' : 'eye-off'" 
+            size="36" 
+            color="#94A3B8"
+            @click="showPassword = !showPassword"
+          ></u-icon>
         </view>
       </view>
 
@@ -74,7 +81,7 @@
 </template>
 
 <script setup lang="ts">
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 import { onLoad } from '@dcloudio/uni-app';
 import { useSettingsStore } from '@/stores/settings';
 import { useUserStore } from '@/stores/user';
@@ -84,8 +91,10 @@ import ElderlyButton from '@/components/ElderlyButton.vue';
 const settingsStore = useSettingsStore();
 const userStore = useUserStore();
 
+const showPassword = ref(false);
+
 const loginForm = reactive({
-  username: '',
+  username: 'elderly_',
   password: ''
 });
 
@@ -106,7 +115,9 @@ const handleLogin = async () => {
     
     // 调用登录接口 (后端返回 { data: { access_token, user } })
     const { data } = await login({
-      username: loginForm.username,
+      username: loginForm.username.startsWith('elderly_') 
+        ? loginForm.username 
+        : `elderly_${loginForm.username}`,
       password: loginForm.password
     });
 
@@ -218,6 +229,8 @@ const handleLogin = async () => {
       padding: 0 32rpx;
       border: 3rpx solid transparent;
       transition: all 0.2s;
+      display: flex;
+      align-items: center;
 
       &:focus-within {
         border-color: $primary-color;
@@ -225,7 +238,7 @@ const handleLogin = async () => {
       }
 
       .input {
-        width: 100%;
+        flex: 1;
         height: 110rpx;
         color: $text-color;
       }
