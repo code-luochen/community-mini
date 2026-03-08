@@ -177,6 +177,14 @@ const latestHealth = ref<any>(null);
 const recommendations = ref<ServiceModel[]>([]);
 const unreadCount = ref(0);
 const isProfileIncomplete = ref(false);
+const userProfile = ref<any>(null);
+
+const formattedHouseAddress = computed(() => {
+  const house = userProfile.value?.house;
+  if (!house) return '';
+  const communityName = house.community?.name || '';
+  return `${communityName} ${house.buildingNo}-${house.unitNo}-${house.roomNo}`;
+});
 
 // 计算属性
 const isBloodPressureAbnormal = computed(() => {
@@ -253,6 +261,7 @@ const fetchAllData = async () => {
     unreadCount.value = (unreadRes as any).data || 0;
     
     const profile = (profileRes as any).data;
+    userProfile.value = profile;
     isProfileIncomplete.value = !profile || !profile.emergencyContact || !profile.emergencyPhone;
 
     // 根据健康状况获取推荐服务
@@ -273,6 +282,8 @@ const fetchRecommendations = async () => {
 
     const res: any = await getServiceList(params);
     recommendations.value = res.data?.items || [];
+
+    consol
 
     // 如果指定类型的服务太少，补充一些普通服务
     if (recommendations.value.length < 2 && hasHealthRisk.value) {
@@ -341,7 +352,10 @@ const handleSOS = () => {
             const locationStr = `纬度: ${locationRes.latitude}, 经度: ${locationRes.longitude}`;
             try {
               uni.showLoading({ title: '呼叫中...' });
-              await createEmergency({ location: locationStr, remark: '首页一键紧急求助' });
+              const remark = formattedHouseAddress.value 
+                ? `首页一键紧急求助 [地址:${formattedHouseAddress.value}]` 
+                : '首页一键紧急求助';
+              await createEmergency({ location: locationStr, remark });
               uni.hideLoading();
               uni.showToast({ title: '信号已发出，请保持电话通畅', icon: 'success', duration: 3000 });
             } catch (err: any) {
@@ -352,7 +366,10 @@ const handleSOS = () => {
           fail: async () => {
             try {
               uni.showLoading({ title: '呼叫中...' });
-              await createEmergency({ location: '定位失败/未授权', remark: '首页一键紧急求助(无坐标)' });
+              const remark = formattedHouseAddress.value 
+                ? `首页一键紧急求助(无坐标) [地址:${formattedHouseAddress.value}]` 
+                : '首页一键紧急求助(无坐标)';
+              await createEmergency({ location: '定位失败/未授权', remark });
               uni.hideLoading();
               uni.showToast({ title: '信号发出，位置暂缺，请等待电话', icon: 'success', duration: 3000 });
             } catch (err: any) {

@@ -57,19 +57,19 @@
       <view class="form-group">
         <view class="group-title">🏠 居住地址</view>
         <view class="form-item vertical">
-          <textarea 
-            class="textarea" 
-            v-model="form.address" 
-            placeholder="请输入您的详细居住地址，方便服务人员上门" 
-            placeholder-class="placeholder"
-            auto-height
-          />
+          <view v-if="formattedAddress" class="address-display">
+            <text class="address-text">{{ formattedAddress }}</text>
+          </view>
+          <text v-else class="placeholder">暂未绑定房产信息，请联系管理员</text>
         </view>
       </view>
 
       <!-- 紧急联系人组 -->
       <view class="form-group emergency-focus">
-        <view class="group-title">🆘 紧急联系人 (核心保障)</view>
+        <view class="group-header">
+          <view class="group-title">🆘 紧急联系人 (核心保障)</view>
+          <view class="quick-pick" @click="showFamilyPicker = true">从家属中选择</view>
+        </view>
         <view class="form-item">
           <text class="label">联系人姓名</text>
           <input 
@@ -96,36 +96,84 @@
     <view class="footer-action">
       <elderly-button @click="handleSave" :loading="submitting">保存基础资料</elderly-button>
     </view>
+
+    <!-- 家属选择器 -->
+    <up-action-sheet
+      :show="showFamilyPicker"
+      :actions="familyActions"
+      title="请选择家属作为紧急联系人"
+      @close="showFamilyPicker = false"
+      @select="handleSelectFamily"
+    ></up-action-sheet>
   </view>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useSettingsStore } from '@/stores/settings';
 import { useUserStore } from '@/stores/user';
 import ElderlyButton from '@/components/ElderlyButton.vue';
 import { getMyProfile, updateMyProfile } from '@/api/profile';
+import { getMyFamilyList, type FamilyBindingModel } from '@/api/family';
 
 const settingsStore = useSettingsStore();
 const userStore = useUserStore();
 
 const submitting = ref(false);
+const showFamilyPicker = ref(false);
+const familyList = ref<FamilyBindingModel[]>([]);
+
+const familyActions = computed(() => {
+  return familyList.value.map(item => ({
+    name: `${item.family.realName || item.family.nickname} (${item.relation || '亲属'})`,
+    subname: item.family.phone,
+    value: item
+  }));
+});
+
 const form = ref({
   age: 0,
   gender: 1,
-  address: '',
+  houseId: null as number | null,
   emergencyContact: '',
   emergencyPhone: ''
+});
+
+const profileInfo = ref<any>(null);
+
+const handleSelectFamily = (action: any) => {
+  const item = action.value as FamilyBindingModel;
+  form.value.emergencyContact = item.family.realName || item.family.nickname;
+  form.value.emergencyPhone = item.family.phone;
+  showFamilyPicker.value = false;
+  uni.showToast({ title: '已填入联系人信息', icon: 'none' });
+};
+
+const loadFamily = async () => {
+  try {
+    const res = await getMyFamilyList();
+    familyList.value = res.data;
+  } catch (err) {
+    console.error('Failed to load family list', err);
+  }
+};
+
+const formattedAddress = computed(() => {
+  const house = profileInfo.value?.house;
+  if (!house) return '';
+  const communityName = house.community?.name || '';
+  return `${communityName} ${house.buildingNo}-${house.unitNo}-${house.roomNo}`;
 });
 
 const loadProfile = async () => {
   try {
     const res: any = await getMyProfile();
     if (res.data) {
+      profileInfo.value = res.data;
       form.value = {
         age: res.data.age || 0,
         gender: res.data.gender || 1,
-        address: res.data.address || '',
+        houseId: res.data.houseId || null,
         emergencyContact: res.data.emergencyContact || '',
         emergencyPhone: res.data.emergencyPhone || ''
       };
@@ -137,6 +185,7 @@ const loadProfile = async () => {
 
 onMounted(() => {
   loadProfile();
+  loadFamily();
 });
 
 const handleSave = async () => {
@@ -176,6 +225,27 @@ const handleSave = async () => {
   padding: 32rpx;
   margin-bottom: 32rpx;
   box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.03);
+
+  .group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32rpx;
+    padding-bottom: 16rpx;
+    border-bottom: 2rpx solid #F0F0F0;
+    .group-title {
+      margin-bottom: 0;
+      border-bottom: none;
+    }
+    .quick-pick {
+      font-size: 26rpx;
+      color: $primary-color;
+      background-color: $primary-light;
+      padding: 8rpx 20rpx;
+      border-radius: 40rpx;
+      font-weight: bold;
+    }
+  }
 
   .group-title {
     font-size: 32rpx;
@@ -262,6 +332,22 @@ const handleSave = async () => {
     font-size: 32rpx;
     color: #333;
     padding: 12rpx 0;
+  }
+
+  .address-display {
+    background: #F8FAFC;
+    padding: 24rpx;
+    border-radius: 16rpx;
+    width: 100%;
+    box-sizing: border-box;
+    border: 1rpx solid #E2E8F0;
+
+    .address-text {
+      font-size: 32rpx;
+      color: #334155;
+      font-weight: bold;
+      line-height: 1.5;
+    }
   }
 
   .placeholder {

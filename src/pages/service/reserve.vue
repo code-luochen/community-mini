@@ -49,6 +49,7 @@ import { onLoad } from '@dcloudio/uni-app';
 import { useSettingsStore } from '@/stores/settings';
 import { getServiceDetail } from '@/api/service';
 import { createOrder } from '@/api/order';
+import { getMyProfile } from '@/api/profile';
 import ElderlyButton from '@/components/ElderlyButton.vue';
 
 const settingsStore = useSettingsStore();
@@ -67,7 +68,8 @@ const d = String(today.getDate()).padStart(2, '0');
 
 const reservedDate = ref(`${y}-${m}-${d}`);
 const reservedTime = ref('');
-const address = ref('幸福小区1号楼101室'); // 默认展示个地址，实际应从 profile 获取
+const address = ref('');
+const houseId = ref<number | undefined>(undefined);
 const remark = ref('');
 const isSubmitting = ref(false);
 
@@ -95,6 +97,19 @@ onLoad(async (options: any) => {
       uni.showToast({ title: '加载服务详情失败', icon: 'none' });
     }
   }
+  
+  // 加载个人档案获取默认地址
+  try {
+    const profileRes = await getMyProfile();
+    const profile = profileRes.data;
+    if (profile) {
+      if (profile.house) {
+        const h = profile.house;
+        address.value = `${h.community?.name || ''} ${h.buildingNo}-${h.unitNo}-${h.roomNo}`;
+        houseId.value = profile.houseId ?? undefined;
+      }
+    }
+  } catch (e) {}
 });
 
 const handleConfirm = async () => {
@@ -135,6 +150,7 @@ const handleConfirm = async () => {
       },
       serviceTime: serviceTimeIso,
       address: address.value,
+      houseId: houseId.value,
       remark: remark.value
     });
 

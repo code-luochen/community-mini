@@ -37,6 +37,7 @@ export interface CreateOrderPayload {
   };
   serviceTime: string;
   address: string;
+  houseId?: number;
   remark?: string;
 }
 

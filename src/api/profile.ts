@@ -1,9 +1,21 @@
 import { request } from '@/utils/request';
 
 export interface ElderlyProfile {
+  id?: number;
   age: number;
   gender: number; // 1-男 2-女
-  address: string;
+  houseId?: number | null;
+  house?: {
+    id: number;
+    buildingNo: string;
+    unitNo: string;
+    roomNo: string;
+    community?: {
+      id: number;
+      name: string;
+      address: string;
+    };
+  };
   emergencyContact: string;
   emergencyPhone: string;
 }
@@ -12,7 +24,7 @@ export interface ElderlyProfile {
  * 获取当前登录老人档案
  */
 export function getMyProfile() {
-  return request<ElderlyProfile>({
+  return request<{ data: ElderlyProfile }>({
     url: '/api/elderly-profile/me',
     method: 'GET',
   });
