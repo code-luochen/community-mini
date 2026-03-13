@@ -127,6 +127,9 @@ const handleSubmit = async () => {
     return;
   }
 
+  // 模拟设备检测和录入中的等待时间
+  uni.showLoading({ title: '设备同步录入中...' });
+  await new Promise(resolve => setTimeout(resolve, 2500));
   uni.showLoading({ title: '保存中...' });
   
   try {

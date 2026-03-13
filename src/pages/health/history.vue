@@ -61,8 +61,17 @@ const hasMore = ref(true);
 
 const formatTime = (timeStr: string) => {
   if (!timeStr) return '';
-  const d = new Date(timeStr);
-  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')} ${d.getHours()}:${d.getMinutes().toString().padStart(2, '0')}`;
+  
+  let d = new Date(timeStr);
+  if (isNaN(d.getTime()) && typeof timeStr === 'string') {
+    const safeStr = timeStr.replace(/-/g, '/').replace('T', ' ').replace('Z', '');
+    d = new Date(safeStr);
+  }
+  
+  // 强制加 8 小时
+  d.setHours(d.getHours() + 8);
+
+  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 };
 
 const fetchRecords = async (isLoadMore = false) => {

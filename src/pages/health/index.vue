@@ -46,6 +46,11 @@
         <text>查看历史记录</text>
       </view>
     </view>
+
+    <!-- 悬浮球：模拟设备同步 -->
+    <view class="fab-simulate-btn" :class="{ 'is-syncing': isSyncing }" @click="handleSimulateDevice">
+      <view class="fab-icon">{{ isSyncing ? '🔄' : '⌚' }}</view>
+    </view>
   </view>
 </template>
 
@@ -55,13 +60,14 @@ import { onShow } from '@dcloudio/uni-app';
 import { useSettingsStore } from '@/stores/settings';
 import { useUserStore } from '@/stores/user';
 import ElderlyButton from '@/components/ElderlyButton.vue';
-import { getHealthRecords } from '@/api/health';
+import { getHealthRecords, createHealthRecord } from '@/api/health';
 
 const settingsStore = useSettingsStore();
 const userStore = useUserStore();
 
 const updateTime = ref('暂无数据');
 const isAbnormalStatus = ref(false);
+const isSyncing = ref(false);
 
 
 
@@ -81,8 +87,17 @@ const fetchHealthData = async () => {
     if (records && records.length > 0) {
       const latest = records[0];
       
-      const recordDate = new Date(latest.record_time || latest.createdAt || Date.now());
-      updateTime.value = `${recordDate.getMonth()+1}月${recordDate.getDate()}日 ${recordDate.getHours()}:${recordDate.getMinutes().toString().padStart(2,'0')}`;
+      let timeStr = latest.record_time || latest.createdAt;
+      let recordDate = new Date(timeStr);
+      if (isNaN(recordDate.getTime()) && typeof timeStr === 'string') {
+        const safeStr = timeStr.replace(/-/g, '/').replace('T', ' ').replace('Z', '');
+        recordDate = new Date(safeStr);
+      }
+
+      // 强制加 8 小时
+      recordDate.setHours(recordDate.getHours() + 8);
+
+      updateTime.value = `${recordDate.getMonth()+1}月${recordDate.getDate()}日 ${recordDate.getHours().toString().padStart(2,'0')}:${recordDate.getMinutes().toString().padStart(2,'0')}`;
       
       isAbnormalStatus.value = latest.is_abnormal === 1;
 
@@ -136,6 +151,38 @@ const handleRecord = () => {
 const handleHistory = () => {
   uni.navigateTo({ url: '/pages/health/history' });
 };
+
+const handleSimulateDevice = async () => {
+  if (isSyncing.value) return;
+  isSyncing.value = true;
+  uni.showToast({ title: '正在连接设备...', icon: 'none' });
+
+  // 模拟异步同步动画时长
+  await new Promise(resolve => setTimeout(resolve, 2000));
+
+  try {
+    const systolicBp = Math.floor(Math.random() * (150 - 100 + 1)) + 100;
+    const diastolicBp = Math.floor(Math.random() * (95 - 60 + 1)) + 60;
+    const heartRate = Math.floor(Math.random() * (105 - 60 + 1)) + 60;
+    const bloodSugar = parseFloat((Math.random() * (8.5 - 4.0) + 4.0).toFixed(1));
+    const temperature = parseFloat((Math.random() * (37.8 - 36.1) + 36.1).toFixed(1));
+    await createHealthRecord({
+      elderlyId: userStore.userInfo?.id || '',
+      systolicBp,
+      diastolicBp,
+      heartRate,
+      bloodSugar,
+      temperature
+    });
+    
+    uni.showToast({ title: '设备数据同步成功', icon: 'success' });
+    await fetchHealthData(); // 重新拉取展示
+  } catch (error) {
+    uni.showToast({ title: '同步失败', icon: 'none' });
+  } finally {
+    isSyncing.value = false;
+  }
+};
 </script>
 
 <style scoped lang="scss">
@@ -145,7 +192,7 @@ const handleHistory = () => {
   padding: 32rpx;
   background-color: $bg-color;
   min-height: 100vh;
-  padding-bottom: 220rpx;
+  padding-bottom: 300rpx;
 }
 
 // 1. 顶部 Hero 卡片
@@ -275,6 +322,45 @@ const handleHistory = () => {
     font-size: 28rpx;
     color: $primary-color;
     font-weight: bold;
+  }
+
+}
+
+// 悬浮球
+.fab-simulate-btn {
+  position: fixed;
+  right: 40rpx;
+  bottom: 240rpx;
+  width: 120rpx;
+  height: 120rpx;
+  background: linear-gradient(135deg, $primary-color 0%, $secondary-color 100%);
+  border-radius: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(8, 145, 178, 0.4);
+  z-index: 100;
+  transition: transform 0.2s;
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  .fab-icon {
+    font-size: 56rpx;
+    display: inline-block;
+  }
+
+  &.is-syncing {
+    .fab-icon {
+      animation: spin 1.2s linear infinite;
+    }
+  }
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
   }
 }
 </style>

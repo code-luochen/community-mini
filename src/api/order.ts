@@ -45,7 +45,7 @@ export interface CreateOrderPayload {
  * 获取订单列表（支持分页和状态过滤）
  */
 export function getOrderList(params: QueryOrderParams) {
-  return request<{data: { items: OrderModel[]; total: number }}>({
+  return request<{ data: { items: OrderModel[]; total: number } }>({
     url: '/api/order',
     method: 'GET',
     data: params,
