@@ -5,7 +5,7 @@
       <image class="avatar" src="https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png" mode="aspectFill" />
       <view class="user-info">
         <text class="nickname" :style="{ fontSize: (settingsStore.fontSize + 4) + 'px' }">
-          {{ userStore.userInfo?.nickname || '张爷爷' }}
+          {{ userStore.userInfo?.nickname || userStore.userInfo?.username || '---' }}
         </text>
         <text class="identity">已认证业主</text>
       </view>
@@ -18,7 +18,7 @@
           <text class="item-icon">{{ item.icon }}</text>
           <text class="item-label" :style="{ fontSize: settingsStore.fontSize + 'px' }">{{ item.label }}</text>
         </view>
-        <text class="arrow">&gt;</text>
+        <!-- <text class="arrow">&gt;</text> -->
       </view>
     </view>
 

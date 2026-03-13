@@ -36,3 +36,14 @@ export function unbindFamily(familyId: number) {
     method: 'DELETE'
   });
 }
+
+/**
+ * 老人端主动绑定家属
+ */
+export function bindFamily(data: { phone: string; relation: string }) {
+  return request({
+    url: '/api/family-binding/bind', // 假设此时是由后端统一处理 或 另外的路由
+    method: 'POST',
+    data
+  });
+}

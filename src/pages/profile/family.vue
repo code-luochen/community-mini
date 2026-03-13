@@ -36,8 +36,29 @@
     <view v-else class="empty-state">
       <image class="empty-img" src="https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png" mode="aspectFit" />
       <text class="tip">暂无绑定的家属信息</text>
-      <text class="sub-tip">您可以让家属在“家属端”扫描您的二维码进行绑定</text>
+      <text class="sub-tip">您可以让家属在“家属端”扫描您的二维码进行绑定，或手动添加并绑定家属号。</text>
     </view>
+
+    <!-- 底部操作按钮 -->
+    <view class="footer-btn">
+      <button class="add-btn" @click="showBindModal = true">添加家属快捷绑定</button>
+    </view>
+
+    <!-- 绑定弹窗 -->
+    <view class="modal-overlay" v-if="showBindModal" @click.stop="showBindModal = false">
+      <view class="modal-content" @click.stop>
+        <view class="modal-header">添加并绑定家属</view>
+        <view class="modal-body">
+          <input class="input-field" v-model="bindForm.phone" type="number" placeholder="请输入家属手号码" maxlength="11" />
+          <input class="input-field" v-model="bindForm.relation" type="text" placeholder="请输入关系(如: 儿子, 女儿, 妻子)" />
+        </view>
+        <view class="modal-footer">
+          <button class="btn cancel" @click="showBindModal = false">取消</button>
+          <button class="btn confirm" @click="submitBind" :disabled="bindLoading">绑定</button>
+        </view>
+      </view>
+    </view>
+
   </view>
 </template>
 
@@ -45,11 +66,16 @@
 import { ref } from 'vue';
 import { onShow } from '@dcloudio/uni-app';
 import { useSettingsStore } from '@/stores/settings';
-import { getMyFamilyList, unbindFamily, type FamilyBindingModel } from '@/api/family';
+import { getMyFamilyList, unbindFamily, bindFamily, type FamilyBindingModel } from '@/api/family';
+import { getMyProfile, updateMyProfile } from '@/api/profile';
 
 const settingsStore = useSettingsStore();
 const familyList = ref<FamilyBindingModel[]>([]);
 const loading = ref(true);
+
+const showBindModal = ref(false);
+const bindLoading = ref(false);
+const bindForm = ref({ phone: '', relation: '' });
 
 const fetchFamilyList = async () => {
   try {
@@ -85,6 +111,22 @@ const handleUnbind = (item: FamilyBindingModel) => {
           await unbindFamily(item.familyId);
           uni.showToast({ title: '已解除绑定', icon: 'success' });
           fetchFamilyList();
+
+          // 同步清理基础资料中可能的紧急联系人
+          try {
+            const profileRes: any = await getMyProfile();
+            if (profileRes.data && profileRes.data.emergencyPhone === item.family.phone) {
+              await updateMyProfile({
+                age: profileRes.data.age || 0,
+                gender: profileRes.data.gender || 1,
+                houseId: profileRes.data.houseId || null,
+                emergencyContact: '',
+                emergencyPhone: ''
+              });
+            }
+          } catch (e) {
+            console.error('Failed to cleanup emergency contact', e);
+          }
         } catch (err) {
           uni.showToast({ title: '解绑失败', icon: 'none' });
         }
@@ -104,6 +146,33 @@ const makePhoneCall = (phoneNumber: string) => {
     phoneNumber
   });
 };
+
+const submitBind = async () => {
+  if (!bindForm.value.phone || !/^1[3-9]\d{9}$/.test(bindForm.value.phone)) {
+    uni.showToast({ title: '请输入正确的手机号', icon: 'none' });
+    return;
+  }
+  if (!bindForm.value.relation) {
+    uni.showToast({ title: '请输入关系', icon: 'none' });
+    return;
+  }
+  
+  try {
+    bindLoading.value = true;
+    uni.showLoading({ title: '绑定中...' });
+    await bindFamily(bindForm.value);
+    uni.hideLoading();
+    uni.showToast({ title: '绑定成功', icon: 'success' });
+    showBindModal.value = false;
+    bindForm.value = { phone: '', relation: '' };
+    fetchFamilyList();
+  } catch (err) {
+    uni.hideLoading();
+    uni.showToast({ title: '绑定失败，可能手机号未注册', icon: 'none' });
+  } finally {
+    bindLoading.value = false;
+  }
+};
 </script>
 
 <style scoped lang="scss">
@@ -113,6 +182,7 @@ const makePhoneCall = (phoneNumber: string) => {
   min-height: 100vh;
   background-color: #F8F9FA;
   padding: 32rpx;
+  padding-bottom: 200rpx;
 }
 
 .loading-state, .empty-state {
@@ -238,6 +308,94 @@ const makePhoneCall = (phoneNumber: string) => {
       }
       
       &:active { opacity: 0.7; }
+    }
+  }
+}
+
+.footer-btn {
+  position: fixed;
+  bottom: 60rpx;
+  left: 40rpx;
+  right: 40rpx;
+  z-index: 90;
+}
+.add-btn {
+  background: linear-gradient(135deg, $primary-color 0%, $secondary-color 100%);
+  color: #FFFFFF;
+  border-radius: 40rpx;
+  font-weight: bold;
+  height: 96rpx;
+  line-height: 96rpx;
+  font-size: 32rpx;
+  box-shadow: 0 8rpx 20rpx rgba(8, 145, 178, 0.3);
+  &::after { border: none; }
+  &:active { transform: scale(0.98); }
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+.modal-content {
+  background: #FFFFFF;
+  width: 620rpx;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 16rpx 48rpx rgba(0,0,0,0.15);
+  
+  .modal-header {
+    text-align: center;
+    padding: 32rpx;
+    font-size: 36rpx;
+    font-weight: bold;
+    color: $text-color;
+    border-bottom: 2rpx solid #F1F5F9;
+  }
+  .modal-body {
+    padding: 40rpx 40rpx;
+    display: flex;
+    flex-direction: column;
+    gap: 32rpx;
+    
+    .input-field {
+      background: #F8F9FA;
+      height: 96rpx;
+      padding: 0 24rpx;
+      border-radius: 16rpx;
+      font-size: 30rpx;
+      color: $text-color;
+    }
+  }
+  .modal-footer {
+    display: flex;
+    border-top: 2rpx solid #F1F5F9;
+    
+    .btn {
+      flex: 1;
+      height: 100rpx;
+      line-height: 100rpx;
+      text-align: center;
+      background: #FFFFFF;
+      font-size: 32rpx;
+      border-radius: 0;
+      margin: 0;
+      &::after { border: none; }
+      &.cancel { 
+        color: $text-color-light; 
+        border-right: 2rpx solid #F1F5F9; 
+      }
+      &.confirm { 
+        color: $primary-color; 
+        font-weight: bold; 
+      }
+      &:active {
+        background: #F8F9FA;
+      }
     }
   }
 }

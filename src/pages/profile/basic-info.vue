@@ -110,6 +110,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
+import { onShow } from '@dcloudio/uni-app';
 import { useSettingsStore } from '@/stores/settings';
 import { useUserStore } from '@/stores/user';
 import ElderlyButton from '@/components/ElderlyButton.vue';
@@ -183,7 +184,7 @@ const loadProfile = async () => {
   }
 };
 
-onMounted(() => {
+onShow(() => {
   loadProfile();
   loadFamily();
 });
