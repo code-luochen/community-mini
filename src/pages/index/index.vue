@@ -114,7 +114,7 @@
               @click="handleBooking(service)"
               @longpress="speak(service.name)"
             >
-              <image class="service-img" :src="service.imageUrl || 'https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png'" mode="aspectFill" />
+              <image class="service-img" :src="getImageUrl(service.imageUrl)" mode="aspectFill" />
               <view class="service-info">
                 <text class="name" :style="{ fontSize: settingsStore.fontSize + 'px' }">{{ service.name }}</text>
                 <view class="price-row">
@@ -153,6 +153,7 @@ import { getUnreadCount } from '@/api/notification';
 import { getHealthRecords } from '@/api/health';
 import { getServiceList, type ServiceModel } from '@/api/service';
 import { getMyProfile } from '@/api/profile';
+import { getMyFamilyList } from '@/api/family';
 
 const settingsStore = useSettingsStore();
 const userStore = useUserStore();
@@ -248,21 +249,27 @@ const fetchAllData = async () => {
   
   try {
     // 并行获取数据
-    const [healthRes, unreadRes, profileRes] = await Promise.all([
+    const [healthRes, unreadRes, profileRes, familyRes] = await Promise.all([
       getHealthRecords({ limit: 1, elderlyId: userInfo.value?.id }),
       getUnreadCount(),
       getMyProfile().catch(err => {
         console.log('Profile not found, which is expected for new users');
         return { data: null };
-      })
+      }),
+      getMyFamilyList().catch(err => ({ data: [] }))
     ]);
 
     latestHealth.value = (healthRes as any).data?.items?.[0] || null;
     unreadCount.value = (unreadRes as any).data || 0;
     
     const profile = (profileRes as any).data;
+    const family = (familyRes as any).data;
     userProfile.value = profile;
-    isProfileIncomplete.value = !profile || !profile.emergencyContact || !profile.emergencyPhone;
+    
+    // 如果档案中填了紧急联系人，或者已经绑定了家属，则视为资料已完善
+    const hasEmergencyInfo = profile && profile.emergencyContact && profile.emergencyPhone;
+    const hasFamilyBound = family && family.length > 0;
+    isProfileIncomplete.value = !hasEmergencyInfo && !hasFamilyBound;
 
     // 根据健康状况获取推荐服务
     fetchRecommendations();
@@ -283,7 +290,6 @@ const fetchRecommendations = async () => {
     const res: any = await getServiceList(params);
     recommendations.value = res.data?.items || [];
 
-    consol
 
     // 如果指定类型的服务太少，补充一些普通服务
     if (recommendations.value.length < 2 && hasHealthRisk.value) {
@@ -306,6 +312,13 @@ const formatTime = (timeStr: string) => {
     return `今天 ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
   }
   return `${date.getMonth() + 1}月${date.getDate()}日`;
+};
+
+const getImageUrl = (url: string) => {
+  if (!url) return 'https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png';
+  if (url.startsWith('http')) return url;
+  const BASE_URL = 'http://127.0.0.1:3000';
+  return `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
 const handleNavigate = (url: string) => {

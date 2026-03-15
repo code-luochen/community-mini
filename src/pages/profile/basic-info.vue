@@ -67,15 +67,36 @@
       <!-- 紧急联系人组 -->
       <view class="form-group emergency-focus">
         <view class="group-header">
-          <view class="group-title">🆘 紧急联系人 (核心保障)</view>
-          <view class="quick-pick" @click="showFamilyPicker = true">从家属中选择</view>
+          <view class="group-title">🆘 紧急联系人 (家属保障)</view>
+          <view class="quick-pick" @click="goToFamily">管理家属</view>
         </view>
+
+        <!-- 已绑定家属展示 (核心展示区域) -->
+        <view v-if="familyList.length > 0" class="family-list-static">
+          <view v-for="(item, index) in familyList" :key="item.id" class="static-contact-item">
+            <view class="item-left">
+              <text class="item-name">{{ item.family.realName || item.family.nickname }}</text>
+              <text class="item-tag">{{ item.relation || '亲属' }}</text>
+            </view>
+            <view class="item-right">
+              <text class="item-phone">{{ item.family.phone }}</text>
+            </view>
+          </view>
+          <view class="divider-line"></view>
+          <view class="tip-text">以上家属将在紧急时刻第一时间收到通知</view>
+        </view>
+        <view v-else class="empty-family-info">
+          <text class="placeholder">暂未绑定家属，请点击“管理家属”去绑定，确保安全有保障。</text>
+        </view>
+
+        <!-- 手动备用联系人 (作为补充) -->
+        <view class="manual-section-title">备用联系人 (非必填)</view>
         <view class="form-item">
           <text class="label">联系人姓名</text>
           <input 
             class="input" 
             v-model="form.emergencyContact" 
-            placeholder="如：儿子/老伴姓名" 
+            placeholder="如：邻居、社区医生姓名" 
             placeholder-class="placeholder"
           />
         </view>
@@ -97,14 +118,6 @@
       <elderly-button @click="handleSave" :loading="submitting">保存基础资料</elderly-button>
     </view>
 
-    <!-- 家属选择器 -->
-    <up-action-sheet
-      :show="showFamilyPicker"
-      :actions="familyActions"
-      title="请选择家属作为紧急联系人"
-      @close="showFamilyPicker = false"
-      @select="handleSelectFamily"
-    ></up-action-sheet>
   </view>
 </template>
 
@@ -121,16 +134,7 @@ const settingsStore = useSettingsStore();
 const userStore = useUserStore();
 
 const submitting = ref(false);
-const showFamilyPicker = ref(false);
 const familyList = ref<FamilyBindingModel[]>([]);
-
-const familyActions = computed(() => {
-  return familyList.value.map(item => ({
-    name: `${item.family.realName || item.family.nickname} (${item.relation || '亲属'})`,
-    subname: item.family.phone,
-    value: item
-  }));
-});
 
 const form = ref({
   age: 0,
@@ -142,12 +146,8 @@ const form = ref({
 
 const profileInfo = ref<any>(null);
 
-const handleSelectFamily = (action: any) => {
-  const item = action.value as FamilyBindingModel;
-  form.value.emergencyContact = item.family.realName || item.family.nickname;
-  form.value.emergencyPhone = item.family.phone;
-  showFamilyPicker.value = false;
-  uni.showToast({ title: '已填入联系人信息', icon: 'none' });
+const goToFamily = () => {
+  uni.navigateTo({ url: '/pages/profile/family' });
 };
 
 const loadFamily = async () => {
@@ -163,7 +163,7 @@ const formattedAddress = computed(() => {
   const house = profileInfo.value?.house;
   if (!house) return '';
   const communityName = house.community?.name || '';
-  return `${communityName} ${house.buildingNo}-${house.unitNo}-${house.roomNo}`;
+  return `${communityName} ${house?.buildingNo || ''} ${house?.unitNo ? "-" + house?.unitNo: "" }${house?.roomNo ? "-" + house?.roomNo: "" }`;
 });
 
 const loadProfile = async () => {
@@ -190,8 +190,8 @@ onShow(() => {
 });
 
 const handleSave = async () => {
-  if (!form.value.emergencyContact || !form.value.emergencyPhone) {
-    uni.showToast({ title: '请填写紧急联系方式', icon: 'none' });
+  if (familyList.value.length === 0 && (!form.value.emergencyContact || !form.value.emergencyPhone)) {
+    uni.showToast({ title: '请至少绑定一名家属或填写备用联系方式', icon: 'none' });
     return;
   }
 
@@ -265,6 +265,50 @@ const handleSave = async () => {
       color: $danger-color;
       border-bottom-color: rgba($danger-color, 0.1);
     }
+  }
+
+  .family-list-static {
+    padding: 16rpx 0;
+    
+    .static-contact-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24rpx 0;
+      border-bottom: 2rpx dashed #FECACA;
+      
+      &:last-of-type { border-bottom: none; }
+      
+      .item-left {
+        display: flex;
+        align-items: center;
+        gap: 16rpx;
+        .item-name { font-size: 32rpx; font-weight: bold; color: #333; }
+        .item-tag { font-size: 22rpx; background: #fee2e2; color: #ef4444; padding: 4rpx 12rpx; border-radius: 8rpx; font-weight: bold; }
+      }
+      .item-right {
+        .item-phone { font-size: 32rpx; color: #ef4444; font-weight: bold; font-family: monospace; }
+      }
+    }
+    
+    .divider-line { height: 2rpx; background: #F0F0F0; margin: 24rpx 0; }
+    .tip-text { font-size: 24rpx; color: #666; text-align: center; font-style: italic; }
+  }
+
+  .empty-family-info {
+    padding: 24rpx;
+    background: #FFF;
+    border-radius: 16rpx;
+    margin-bottom: 24rpx;
+    .placeholder { font-size: 26rpx; color: #999; line-height: 1.5; }
+  }
+
+  .manual-section-title {
+    font-size: 26rpx;
+    color: #999;
+    margin: 32rpx 0 16rpx;
+    padding-top: 24rpx;
+    border-top: 2rpx solid #F3F4F6;
   }
 }
 

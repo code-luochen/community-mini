@@ -34,12 +34,13 @@
         :key="item.id"
       >
         <view class="service-info">
-          <image class="service-img" :src="item.imageUrl || '/static/default_service.png'" mode="aspectFill"></image>
+          <image class="service-img" :src="getImageUrl(item.imageUrl)" mode="aspectFill"></image>
           <view class="service-content">
             <text class="service-name" :style="{ fontSize: settingsStore.fontSize + 'px' }">{{ item.name }}</text>
             <text class="service-desc" :style="{ fontSize: (settingsStore.fontSize - 4) + 'px' }">{{ item.description || '暂无描述' }}</text>
             <text class="service-price">¥ {{ Number(item.price).toFixed(2) }}</text>
           </view>
+         
         </view>
         <elderly-button @click="goToReserve(item)">预约</elderly-button>
       </view>
@@ -76,6 +77,8 @@ const queryParams = ref<QueryServiceParams>({
 const total = ref(0);
 const loadStatus = ref<'loadmore' | 'loading' | 'nomore'>('loadmore');
 
+
+
 const fetchServices = async (isReset = false) => {
   if (isReset) {
     queryParams.value.page = 1;
@@ -94,6 +97,8 @@ const fetchServices = async (isReset = false) => {
     
     serviceList.value = [...serviceList.value, ...items];
     total.value = totalCount;
+
+    console.log("serviceList", serviceList.value[0].imageUrl)
     
     if (serviceList.value.length >= total.value) {
       loadStatus.value = 'nomore';
@@ -123,6 +128,14 @@ const goToReserve = (item: ServiceModel) => {
   uni.navigateTo({
     url: `/pages/service/reserve?id=${item.id}&name=${encodeURIComponent(item.name)}&price=${item.price}`
   });
+};
+
+const getImageUrl = (url: string) => {
+  if (!url) return 'https://img.js.design/assets/illustration/63f46f48a97217578205691e/preview.png';
+  if (url.startsWith('http')) return url;
+  // 从开发环境配置中获取基础路径，此处硬编码与 request.ts 保持一致
+  const BASE_URL = 'http://127.0.0.1:3000';
+  return `${BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
 onLoad(() => {
