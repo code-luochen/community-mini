@@ -47,6 +47,15 @@
       <view class="notice-btn">去完善</view>
     </view>
 
+    <!-- 1.6 社区公告 (Community Announcement) -->
+    <view v-if="latestAnnouncement" class="announcement-notice" @click="showAnnouncementDetails">
+      <view class="notice-left">
+        <u-icon name="volume-fill" color="#F59E0B" size="36"></u-icon>
+        <text class="notice-text">公告: {{ latestAnnouncement.title }}</text>
+      </view>
+      <u-icon name="arrow-right" color="#9CA3AF" size="24"></u-icon>
+    </view>
+
     <!-- 2. 功能金刚区 (Floated Category Grid) -->
     <view class="main-content">
       <view class="grid-card">
@@ -154,6 +163,7 @@ import { getHealthRecords } from '@/api/health';
 import { getServiceList, type ServiceModel } from '@/api/service';
 import { getMyProfile } from '@/api/profile';
 import { getMyFamilyList } from '@/api/family';
+import { fetchAnnouncements } from '@/api/announcement';
 
 const settingsStore = useSettingsStore();
 const userStore = useUserStore();
@@ -179,6 +189,7 @@ const recommendations = ref<ServiceModel[]>([]);
 const unreadCount = ref(0);
 const isProfileIncomplete = ref(false);
 const userProfile = ref<any>(null);
+const latestAnnouncement = ref<any>(null);
 
 const formattedHouseAddress = computed(() => {
   const house = userProfile.value?.house;
@@ -249,14 +260,15 @@ const fetchAllData = async () => {
   
   try {
     // 并行获取数据
-    const [healthRes, unreadRes, profileRes, familyRes] = await Promise.all([
+    const [healthRes, unreadRes, profileRes, familyRes, annRes] = await Promise.all([
       getHealthRecords({ limit: 1, elderlyId: userInfo.value?.id }),
       getUnreadCount(),
       getMyProfile().catch(err => {
         console.log('Profile not found, which is expected for new users');
         return { data: null };
       }),
-      getMyFamilyList().catch(err => ({ data: [] }))
+      getMyFamilyList().catch(err => ({ data: [] })),
+      fetchAnnouncements().catch((err: any) => ({ data: [] }))
     ]);
 
     latestHealth.value = (healthRes as any).data?.items?.[0] || null;
@@ -264,6 +276,12 @@ const fetchAllData = async () => {
     
     const profile = (profileRes as any).data;
     const family = (familyRes as any).data;
+    
+    const annList = (annRes as any).data || annRes || [];
+    if (annList.length > 0) {
+       latestAnnouncement.value = annList[0];
+    }
+
     userProfile.value = profile;
     
     // 如果档案中填了紧急联系人，或者已经绑定了家属，则视为资料已完善
@@ -333,6 +351,16 @@ const handleNavigate = (url: string) => {
 const handleBooking = (service: any) => {
   uni.navigateTo({
     url: `/pages/service/reserve?id=${service.id}&name=${encodeURIComponent(service.name)}`
+  });
+};
+
+const showAnnouncementDetails = () => {
+  if (!latestAnnouncement.value) return;
+  uni.showModal({
+    title: latestAnnouncement.value.title,
+    content: latestAnnouncement.value.content,
+    showCancel: false,
+    confirmText: '我知道了'
   });
 };
 
@@ -747,6 +775,35 @@ const handleSOS = () => {
     font-weight: bold;
     padding: 12rpx 24rpx;
     border-radius: 20rpx;
+  }
+}
+
+.announcement-notice {
+  margin: 0 32rpx 32rpx;
+  background: #FFFBEB;
+  border-radius: 24rpx;
+  padding: 20rpx 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.05);
+
+  .notice-left {
+    display: flex;
+    align-items: center;
+    gap: 16rpx;
+    flex: 1;
+    overflow: hidden;
+
+    .notice-text {
+      font-size: 28rpx;
+      color: #D97706;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
   }
 }
 </style>
