@@ -299,22 +299,14 @@ const fetchAllData = async () => {
 const fetchRecommendations = async () => {
   try {
     const params: any = { limit: 5 };
-    
-    // 联动逻辑：如果健康异常，尤其是血压异常，优先推荐医护服务 (type 3) 或 药品服务 (type 2)
+
+    // 联动逻辑：如果健康异常，尤其是血压异常，优先推荐医护服务 (type 3)
     if (hasHealthRisk.value) {
       params.type = 3; // 医护服务
     }
 
     const res: any = await getServiceList(params);
     recommendations.value = res.data?.items || [];
-
-
-    // 如果指定类型的服务太少，补充一些普通服务
-    if (recommendations.value.length < 2 && hasHealthRisk.value) {
-       const extraRes: any = await getServiceList({ limit: 5 });
-       const extraItems = extraRes.data?.items || [];
-       recommendations.value = [...new Set([...recommendations.value, ...extraItems])].slice(0, 5);
-    }
   } catch (err) {
     console.error('Fetch recommendations failed:', err);
   }
