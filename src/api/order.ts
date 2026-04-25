@@ -17,6 +17,7 @@ export interface OrderModel {
   evaluationContent: string;
   createdAt: string;
   updatedAt: string;
+  isServiceDeleted?: boolean; // 服务是否已被删除
 }
 
 export interface QueryOrderParams {

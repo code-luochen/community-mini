@@ -59,6 +59,7 @@ const serviceName = ref('');
 const servicePrice = ref(0);
 const merchantId = ref('');
 const serviceDesc = ref('');
+const serviceImageUrl = ref('');
 
 // 默认今天
 const today = new Date();
@@ -92,6 +93,7 @@ onLoad(async (options: any) => {
         servicePrice.value = res.data.price;
         merchantId.value = res.data.merchantId;
         serviceDesc.value = res.data.description;
+        serviceImageUrl.value = res.data.imageUrl || '';
       }
     } catch (e: any) {
       uni.showToast({ title: '加载服务详情失败', icon: 'none' });
@@ -127,16 +129,9 @@ const handleConfirm = async () => {
 
   const serviceTimeIso = new Date(`${reservedDate.value}T${reservedTime.value}:00+08:00`).toISOString();
 
-  // 获取当前用户ID作为 elderlyId。通常从小程序全局状态或 localStorage 拿，这里演示用
-  // TODO: 如果有 userStore 可以直接用 userStore.userInfo.id
-  let currentUserId = '1';
-  try {
-    const userInfoStr = uni.getStorageSync('userInfo');
-    if (userInfoStr) {
-      const userInfo = JSON.parse(userInfoStr);
-      currentUserId = String(userInfo.id);
-    }
-  } catch (e) {}
+  // 获取当前用户ID作为 elderlyId
+  const userInfo = uni.getStorageSync('userInfo');
+  let currentUserId = userInfo?.id ? String(userInfo.id) : '1';
 
   try {
     await createOrder({
@@ -146,7 +141,8 @@ const handleConfirm = async () => {
       serviceSnapshot: {
         name: serviceName.value,
         price: servicePrice.value,
-        description: serviceDesc.value
+        description: serviceDesc.value,
+        imageUrl: serviceImageUrl.value,
       },
       serviceTime: serviceTimeIso,
       address: address.value,

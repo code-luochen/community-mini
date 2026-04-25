@@ -42,11 +42,14 @@
           
           <!-- 订单主体 -->
           <view class="card-body">
-            <image class="service-img" src="/static/logo.png" mode="aspectFit" />
+            <image class="service-img" :src="getServiceImage(order)" mode="aspectFit" />
             <view class="service-info">
-              <text class="service-name" :style="{ fontSize: (settingsStore.fontSize + 2) + 'px' }">
-                {{ order.serviceSnapshot?.name || '社区服务' }}
-              </text>
+              <view class="service-name-row">
+                <text class="service-name" :style="{ fontSize: (settingsStore.fontSize + 2) + 'px' }">
+                  {{ order.serviceSnapshot?.name || '社区服务' }}
+                </text>
+                <view v-if="order.isServiceDeleted" class="deleted-badge">已下架</view>
+              </view>
               <text class="service-time">创建时间：{{ formatDate(order.createdAt) }}</text>
               <view class="price-row">
                 <text class="price-label">金额</text>
@@ -297,6 +300,16 @@ const submitEvaluate = async () => {
 };
 
 // 工具函数
+const getServiceImage = (order: OrderModel) => {
+  if (order.serviceSnapshot?.imageUrl) {
+    if (order.serviceSnapshot.imageUrl.startsWith('http')) {
+      return order.serviceSnapshot.imageUrl;
+    }
+    return 'http://127.0.0.1:3000' + order.serviceSnapshot.imageUrl;
+  }
+  return '/static/logo.png';
+};
+
 const formatStatus = (s: number) => {
   const map: Record<number, string> = {
     0: '待接单', 1: '已接单', 2: '配送中', 3: '待评价', 4: '已完成', 5: '已取消'
@@ -427,10 +440,22 @@ const formatDate = (dateStr: string) => {
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      
+
+      .service-name-row {
+        display: flex;
+        align-items: center;
+        gap: 12rpx;
+      }
       .service-name { font-weight: 900; color: $text-color; }
       .service-time { font-size: 24rpx; color: $text-color-muted; }
-      
+      .deleted-badge {
+        font-size: 20rpx;
+        color: #fff;
+        background: #ef4444;
+        padding: 4rpx 12rpx;
+        border-radius: 8rpx;
+      }
+
       .price-row {
         margin-top: 10rpx;
         display: flex; align-items: baseline;
